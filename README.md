@@ -97,7 +97,7 @@ Each stage is a *segment* with an entry condition and a handoff written to files
 | `/review <NNNN>` | Independent review — read-only where the tool supports it (see "How strongly is each rule held?") | Findings report → human triage |
 | `/verify <NNNN>` | QA: criterion ↔ evidence table | Table → human ship |
 | `/change "<request> <work item>"` | Change an existing behavior: triage rubric (bug → `/fix-bug` · trivial → one commit per `docs/git.md` policy · change → mini-spec lane), then the lane by mode (`workflows/change-request.md`) | Triage verdict; then the lane's gates |
-| `/bootstrap` · `/fix-bug` · `/refactor` · `/adr` · `/recover` | Other workflows — same commands in Claude Code, Cursor, Copilot and Codex; any other tool pastes the prompts | Their gates |
+| `/bootstrap` · `/fix-bug` · `/refactor` · `/backlog` · `/adr` · `/recover` | Other workflows — same commands in Claude Code, Cursor, Copilot and Codex; any other tool pastes the prompts | Their gates |
 
 Claude Code and Cursor expose these as slash commands, GitHub Copilot as prompt files, Codex as
 project-level skills (`$analyze`, explicit only; it reads `AGENTS.md` natively), and any
@@ -160,6 +160,7 @@ branch protection setting makes "no force-push" Enforced for every tool.
 | `workflows/` | The processes: bootstrap, feature-development, change-request, bug-fix, refactor, incident. Steps, roles, gates, evidence — each step points to its prompt. `segments.md` defines the feature stages as stop-at-handoff segments that every adapter maps onto. |
 | `prompts/` | Reusable prompt bodies with placeholders. `prompts/recovery/` is the catalog of safe ramps (R-01…R-12) for when things go wrong. |
 | `adapters/` | Per-tool wiring. `scripts/init <tool>` installs one. |
+| `specs/BACKLOG.md` · `scripts/backlog` | Every requirement of the product, one line each: `Open`, `Existing` (already built — the brownfield inventory) or `Dropped`. Specs link themselves with `- Requirements: REQ-NNN`; `scripts/backlog` derives each row's progress from those specs' `Status`, and doctor reports broken links. `/backlog` adds, changes or inventories rows. |
 | `scripts/check` | The single verification contract: humans, agents, hooks, and CI all run this one command. Stack-specific internals live in `check.conf`, written at bootstrap. `--fast` runs only the steps tagged `[fast]` for the inner loop; only the full run is evidence. Reports each step's duration and the total. |
 | `scripts/doctor` | Workspace health: structure, configuration state, adapter presence, spec/plan gate consistency (`--strict` in CI), evidence hygiene warnings. |
 | `scripts/residue` | The residue test (`docs/testing.md`, Resource hygiene): runs check twice and names every process or memory drop that outlives a run. Bootstrap runs it for both profiles; rerun it whenever check.conf changes. |

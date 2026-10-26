@@ -9,6 +9,7 @@
        moves to specs/done/). /plan refuses to run unless the status is Approved. -->
 - Mode: lite | strict (from AGENTS.md at creation time)
 - Plan: `specs/plans/NNNN-plan.md`
+- Requirements: <!-- REQ ids from specs/BACKLOG.md this spec delivers, e.g. REQ-003. A spec no requirement covers adds the requirement first. -->
 
 ## Intent
 <!-- 3–5 sentences, BUSINESS language: who wants this and why; what success looks like;

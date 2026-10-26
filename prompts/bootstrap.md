@@ -12,7 +12,8 @@ Read AGENTS.md and workflows/bootstrap.md. We are adapting this workspace to a r
    Field labels and Status values in templates stay English — they are protocol, not prose.
 1. INSPECT the working tree. If it contains application code, detect stack, build/test tooling and
    existing conventions from the code, and present what you found for confirmation. If empty,
-   we start from my answers.
+   we start from my answers. Existing code also gets a capability INVENTORY (prompts/backlog.md,
+   INVENTORY): what the product already does, as Existing rows with file-path evidence.
 2. INTERVIEW me one topic at a time — with your own recommendation and rationale for every
    question (proposal rule):
    product & goal · domain terms and business rules · architecture style & module boundaries ·
@@ -21,10 +22,14 @@ Read AGENTS.md and workflows/bootstrap.md. We are adapting this workspace to a r
    posture · git rules · trivial-change policy ("what do label/typo-level changes require?" —
    (1) PR + one reviewer, no spec [recommend this: cheap safety net]; (2) direct commit allowed on a trivial branch; (3) everything goes through a mini-spec
    [strictest]; write the answer to docs/git.md "Trivial changes") · operating mode (lite or
-   strict — recommend one based on team size and risk).
+   strict — recommend one based on team size and risk) · the first requirements (greenfield: the
+   capabilities V1 needs, each one line in business language with a Must/Should/Could priority and
+   your recommendation; brownfield: what is planned next, beside the inventory).
 3. GENERATE from my answers: fill every template in docs/ (architecture, domain, conventions,
    testing, security, git); write scripts/check.conf with real build/test/lint commands for this
-   stack; set the Mode and Language lines in AGENTS.md; rewrite the AGENTS.md project summary.
+   stack; set the Mode and Language lines in AGENTS.md; rewrite the AGENTS.md project summary;
+   write the approved requirements and the inventory into specs/BACKLOG.md (State Open / Existing,
+   ids from REQ-001; delete the example rows in its comment).
    HARD RULES: the "Invariant rules" block in AGENTS.md is kept verbatim; the "Operating mode"
    section keeps its "Start work" and "Language" lines (fill the values, keep the sentences);
    AGENTS.md stays a signpost ≤ 40 lines — it POINTS to docs, it never copies them.
@@ -47,12 +52,13 @@ Read AGENTS.md and workflows/bootstrap.md. We are adapting this workspace to a r
       to BOTH profiles.
    Adoption (existing code): changing build flags the team relies on, and the fast/full split, are
    PROPOSED, not imposed; the residue test runs either way so the trade-off is visible.
-4. VERIFY: run ./scripts/doctor and ./scripts/check and show me the output; then the residue test
+4. VERIFY: run ./scripts/doctor, ./scripts/backlog and ./scripts/check and show me the output; then the residue test
    (3c: ./scripts/residue and ./scripts/residue --fast) with its baseline and both post-run
    measurements.
 5. REPORT: what you generated, what you assumed, and every open question that still needs my
    decision — with your recommendations. End with the first command for the mode you set:
-   lite → Next: /new-feature "<feature>" (it chains the segments and asks at each gate);
-   strict → Next: /analyze "<feature>" in an Analyst session. Do not recommend the segment
+   lite → Next: /new-feature "REQ-NNN" (it chains the segments and asks at each gate);
+   strict → Next: /analyze "REQ-NNN" in an Analyst session — REQ-NNN = the Open Must you
+   recommend starting with. Do not recommend the segment
    commands in lite mode — /new-feature calls them.
 ```

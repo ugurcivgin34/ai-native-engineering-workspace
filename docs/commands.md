@@ -29,9 +29,9 @@ Always available, outside the loop:
 
 | Group | Commands |
 |---|---|
-| Terminal scripts | `scripts/init` · `scripts/doctor` · `scripts/check` · `scripts/residue` · `scripts/selftest` |
+| Terminal scripts | `scripts/init` · `scripts/doctor` · `scripts/check` · `scripts/residue` · `scripts/selftest` · `scripts/backlog` |
 | Request lanes | `/change` (existing behavior) · `/fix-bug` (broken behavior) · `/refactor` (structure only) |
-| Setup · record · recover | `/bootstrap` · `/adr` · `/recover` |
+| Setup · record · recover | `/bootstrap` · `/backlog` · `/adr` · `/recover` |
 
 ## How to read this page
 
@@ -66,7 +66,8 @@ Mode is the `Mode:` line in `AGENTS.md`, set at bootstrap (`workflows/README.md`
 - **What it does:** workspace health — required core files, recovery catalog, configuration
   (`AGENTS.md`, mode, language, `scripts/check.conf`), the ANEW base version (`.anew-version`),
   adapter presence and parity, this page's coverage, spec/plan gate consistency, twin and shipped specs, `specs/done/` immutability,
-  evidence hygiene, fast-only evidence. `--strict` turns gate warnings into failures; CI runs it that way.
+  evidence hygiene, fast-only evidence, backlog consistency (`scripts/backlog --lint`), spec size
+  (> 10 criteria without a recorded "kept as one"), and fix round 4+ without a recorded R-06 decision. `--strict` turns gate warnings into failures; CI runs it that way.
 - **When to use it:** after bootstrap, before a PR, whenever the workspace feels off.
 - **Reads / writes:** reads the working tree (and git, for `specs/done/` against a base ref);
   writes nothing.
@@ -102,8 +103,8 @@ Mode is the `Mode:` line in `AGENTS.md`, set at bootstrap (`workflows/README.md`
 - **Common mistake:** running it on a busy machine — whatever starts meanwhile is listed too.
 
 ### `scripts/selftest`
-- **What it does:** proves that `scripts/check`, `scripts/doctor` and `scripts/residue` behave as
-  documented, scenario by scenario.
+- **What it does:** proves that `scripts/check`, `scripts/doctor`, `scripts/residue` and
+  `scripts/backlog` behave as documented, scenario by scenario.
 - **When to use it:** after changing any ANEW script; CI runs it after doctor.
 - **Reads / writes:** copies the ANEW core into a temp dir outside the repo; writes nothing in the repo.
 - **Stops at:** `== selftest: <n> passed, <m> failed ==` (exit 1 on any failure).
@@ -111,6 +112,19 @@ Mode is the `Mode:` line in `AGENTS.md`, set at bootstrap (`workflows/README.md`
 - **Refusal:** none.
 - **Common mistake:** editing a script and the selftest together to make it pass — a red selftest
   means the script now differs from its documentation.
+
+### `scripts/backlog`
+- **What it does:** prints every requirement in `specs/BACKLOG.md` with its status — derived from
+  the `Status` of the specs whose `- Requirements:` line names it — plus totals. `--md` prints a
+  Markdown table; `--lint` prints the consistency findings doctor reports.
+- **When to use it:** "where are we?" — before choosing the next feature, in a PR description, at
+  the start of a session.
+- **Reads / writes:** reads `specs/BACKLOG.md`, `specs/active/`, `specs/done/`; writes nothing.
+- **Stops at:** `== <n> requirements: … ==` (exit 0; 1 without a backlog file).
+- **Lite / Strict:** no difference.
+- **Refusal:** none — it reports.
+- **Common mistake:** typing progress (`Done`, `In progress`) into the State column — progress
+  lives in the spec; the backlog holds only Open, Existing or Dropped.
 
 ## B — Start: `/bootstrap` and `/new-feature`
 
@@ -245,7 +259,21 @@ gate, handoff ending in `Next: <segment> — <who runs it>`, stop.
 - **Refusal:** none — but `./scripts/check` must be green before it starts.
 - **Common mistake:** editing a test — a needed test edit means behavior changed; stop.
 
-## E — Record and recover: `/adr`, `/recover`
+## E — Record and recover: `/backlog`, `/adr`, `/recover`
+
+### `/backlog`
+- **What it does:** one job per call — status (no argument: the report plus a recommended next
+  requirement), add requirements, change a row (reprioritize, reword, drop), or inventory what
+  existing code already does as `Existing` rows (`prompts/backlog.md`).
+- **When to use it:** a new idea or request arrives; before choosing the next feature; adopting
+  ANEW on existing code.
+- **Reads / writes:** `prompts/backlog.md`, `scripts/backlog` output, the code (inventory);
+  writes `specs/BACKLOG.md` only.
+- **Stops at:** your approval of the proposed rows, before anything is written.
+- **Lite / Strict:** no difference.
+- **Refusal:** none.
+- **Common mistake:** going from a backlog row straight to code — the next step is
+  `/new-feature "REQ-NNN"` (lite) or `/analyze "REQ-NNN"` (strict).
 
 ### `/adr`
 - **What it does:** discusses an architecture decision, then records it from
@@ -281,6 +309,7 @@ lives in [`prompts/recovery/README.md`](../prompts/recovery/README.md).
 | `scripts/check` | The verification contract; `--fast` to iterate | `CHECK GREEN` / `CHECK FAILED` | Same | Same |
 | `scripts/residue` | Check leaves nothing running | `RESIDUE CLEAN` / `RESIDUE FOUND` | Same | Same |
 | `scripts/selftest` | ANEW's scripts behave as documented | Pass / fail count | Same | Same |
+| `scripts/backlog` | Requirements and their derived status | Totals line | Same | Same |
 | `/bootstrap` | Adapt ANEW to the project | Language · interview · report | Sets the mode | Sets the mode |
 | `/new-feature` | Chain the segments | Each of the four gates | Chains | Refuses |
 | `/analyze` | Intent → approved spec | Spec approval | Clarify folded into draft | Clarify first |
@@ -291,6 +320,7 @@ lives in [`prompts/recovery/README.md`](../prompts/recovery/README.md).
 | `/change` | Triage, then the lane | Verdict; lane gates | Chains the lane | ANALYZE (mini) only |
 | `/fix-bug` | Red reproduction first | Repro · triage | Same | Same |
 | `/refactor` | Behavior unchanged, proven | Approval · triage | Same | Same |
+| `/backlog` | Status, add, change or inventory requirements | Row approval | Same | Same |
 | `/adr` | Record a decision | Your decision | Same | Same |
 | `/recover` | Run the matching ramp | Ramp confirmation | Same | Same |
 

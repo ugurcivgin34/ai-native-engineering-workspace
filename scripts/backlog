@@ -1,0 +1,124 @@
+#!/bin/sh
+# ANEW backlog — what the product must do, and how far each requirement is.
+# Reads specs/BACKLOG.md (the list, State set by hand) and every spec's "- Requirements:" line
+# (progress, from the spec's Status). Writes nothing.
+#   ./scripts/backlog          report, one line per requirement, plus totals
+#   ./scripts/backlog --md     the same as a Markdown table (paste into a PR or an issue)
+#   ./scripts/backlog --lint   consistency findings for scripts/doctor: "<gate|warn><TAB><message>"
+# Exit 0 = ran (findings never change the exit code), 1 = no backlog file, 2 = usage.
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+BL="$ROOT/specs/BACKLOG.md"
+mode=report
+case "${1:-}" in
+  "") ;;
+  --md) mode=md ;;
+  --lint) mode=lint ;;
+  *) echo "usage: ./scripts/backlog [--md | --lint]" >&2; exit 2 ;;
+esac
+[ $# -le 1 ] || { echo "usage: ./scripts/backlog [--md | --lint]" >&2; exit 2; }
+if [ ! -f "$BL" ]; then
+  [ "$mode" = lint ] && exit 0   # doctor reports the missing file itself
+  echo "no specs/BACKLOG.md — create it from the template (ANEW: specs/BACKLOG.md)" >&2
+  exit 1
+fi
+
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/anew-backlog.XXXXXX") || exit 1
+trap 'rm -rf "$TMP"' EXIT INT TERM
+
+# --- rows: ID|requirement|priority|state|notes, HTML comments removed first (they hold examples) ---
+awk '
+  { line = $0
+    out = ""
+    while (line != "") {
+      if (incomment) {
+        e = index(line, "-->"); if (e == 0) { line = ""; break }
+        line = substr(line, e + 3); incomment = 0
+      } else {
+        s = index(line, "<!--"); if (s == 0) { out = out line; line = ""; break }
+        out = out substr(line, 1, s - 1); line = substr(line, s + 4); incomment = 1
+      }
+    }
+    print out }
+' "$BL" | awk -F'|' '
+  function trim(s) { gsub(/^[ \t]+|[ \t\r]+$/, "", s); return s }
+  trim($2) ~ /^REQ-[0-9]+$/ {
+    printf "%s|%s|%s|%s|%s\n", trim($2), trim($3), trim($4), trim($5), trim($6) }
+' > "$TMP/rows"
+
+# --- links: REQ|spec number|spec status|kind (full|mini)|place (active|done) ---
+: > "$TMP/links"
+for s in "$ROOT/specs/active/"[0-9]*.md "$ROOT/specs/done/"[0-9]*.md; do
+  [ -f "$s" ] || continue
+  n=$(basename "$s" | sed 's/[-.].*//')
+  case "$s" in "$ROOT/specs/done/"*) place=done ;; *) place=active ;; esac
+  status=$(grep -m1 '^- Status:' "$s" | sed 's/^- Status:[[:space:]]*//; s/[[:space:]]*$//')
+  [ "$place" = done ] && status=Shipped
+  kind=full; grep -q '^## Preserved behavior' "$s" && kind=mini
+  reqs=$(grep -m1 '^- Requirements:' "$s" | sed 's/<!--.*-->//g' | grep -o 'REQ-[0-9][0-9]*')
+  if [ -z "$reqs" ]; then
+    printf '%s|%s|%s|%s|%s\n' "-" "$n" "${status:-unknown}" "$kind" "$place" >> "$TMP/links"
+  else
+    for r in $reqs; do printf '%s|%s|%s|%s|%s\n' "$r" "$n" "${status:-unknown}" "$kind" "$place" >> "$TMP/links"; done
+  fi
+done
+
+if [ "$mode" = lint ]; then
+  awk -F'|' -v T="$(printf '\t')" '
+    FILENAME == ARGV[1] { if (seen[$1]++) printf "gate%sbacklog: duplicate requirement id %s in specs/BACKLOG.md\n", T, $1
+                state[$1] = $4; rows++
+                if ($4 != "Open" && $4 != "Existing" && $4 != "Dropped")
+                  printf "warn%sbacklog: %s has State \"%s\" — use Open, Existing or Dropped (progress comes from specs)\n", T, $1, $4
+                next }
+    $1 == "-" { if (rows > 0 && $4 == "full" && $5 == "active")
+                  printf "warn%sbacklog: spec %s has no Requirements line — link it to a REQ in specs/BACKLOG.md (or add the requirement)\n", T, $2
+                next }
+    !($1 in state) { printf "gate%sbacklog: spec %s names %s, which is not in specs/BACKLOG.md\n", T, $2, $1; next }
+    $5 == "active" && state[$1] == "Dropped" { printf "warn%sbacklog: spec %s works on %s, which is Dropped\n", T, $2, $1 }
+    $5 == "active" && $4 == "full" && state[$1] == "Existing" {
+      printf "warn%sbacklog: spec %s is a full spec for Existing %s — changing existing behavior goes through /change (mini-spec)\n", T, $2, $1 }
+  ' "$TMP/rows" "$TMP/links"
+  exit 0
+fi
+
+# --- derive each row: status + the specs behind it ---
+awk -F'|' -v mode="$mode" '
+  FILENAME == ARGV[1] { if ($1 != "-") { n[$1]++; sp[$1] = sp[$1] (sp[$1] ? ", " : "") $2 " " $3
+              if ($3 == "Shipped") sh[$1]++; else if ($3 == "In progress") ip[$1]++; else if ($3 == "Approved") ap[$1]++ }
+              next }
+  { id = $1; req = $2; pri = ($3 == "" || $3 == "—" ? "-" : $3); st = $4
+    if (st == "Dropped" || st == "Existing") status = st
+    else if (!(id in n)) status = "Open"
+    else if (sh[id] == n[id]) status = "Shipped"
+    else if (ip[id] || sh[id]) status = "In progress"
+    else if (ap[id]) status = "Approved"
+    else status = "Draft"
+    if (st == "Existing" && (id in n) && sh[id] < n[id]) status = "Existing, change open"
+    if ((id in n) && n[id] > 1 && sh[id] < n[id] && st == "Open") status = status " (" sh[id] + 0 "/" n[id] " shipped)"
+    specs = (id in n) ? sp[id] : "—"
+    total++
+    if (status ~ /^Shipped/) c["shipped"]++
+    else if (status ~ /^Existing/) c["existing"]++
+    else if (status ~ /^Dropped/) c["dropped"]++
+    else if (status ~ /^Open/) c["open"]++
+    else c["in work"]++
+    if (mode == "md") printf "| %s | %s | %s | %s | %s |\n", id, req, pri, status, specs
+    else printf "%-8s  %-26s  %-6s  %s  [specs: %s]\n", id, status, pri, req, specs
+  }
+  END {
+    sum = sprintf("%d requirements: %d shipped · %d in work · %d open · %d existing · %d dropped",
+      total, c["shipped"], c["in work"], c["open"], c["existing"], c["dropped"])
+    if (mode == "md") printf "\n%s\n", sum; else printf "== %s ==\n", sum
+  }
+' "$TMP/links" "$TMP/rows" > "$TMP/out"
+
+if [ "$mode" = md ]; then
+  echo "| ID | Requirement | Priority | Status | Specs |"
+  echo "|---|---|---|---|---|"
+else
+  echo "== ANEW backlog =="
+fi
+cat "$TMP/out"
+if [ ! -s "$TMP/rows" ]; then
+  echo "(no requirements yet — bootstrap fills the first list, or add rows to specs/BACKLOG.md)"
+fi
+exit 0

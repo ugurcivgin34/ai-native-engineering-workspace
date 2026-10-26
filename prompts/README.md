@@ -24,6 +24,7 @@ Almost every prompt follows the same anatomy — knowing it lets you re-derive a
 | `build.md` (+ `§fixes`) | BUILD segment (feature step 5); fix rounds (step 8); bug-fix step 4 | Developer |
 | `review.md` | REVIEW segment (feature step 6); every workflow's review | Reviewer |
 | `verify.md` | VERIFY segment (feature step 9) | QA |
+| `backlog.md` | `/backlog`; bootstrap (first list, inventory) | Analyst |
 | `adr.md` | `docs/decisions/` | any |
 | `recovery/*.md` | when a ramp is triggered (R-01…R-12) | see each ramp |
 

@@ -19,6 +19,10 @@ request sounds. **Role:** Analyst runs the rubric and presents the verdict with 
 | (b) | **Behavior test:** does this change alter any acceptance criterion, or require a new one? | **CHANGE lane** (mini-spec). | **TRIVIAL lane**. |
 | (c) | **Blast radius:** does it touch shared code (a component, helper, model, or contract used in more than one place)? | **CHANGE lane**, even if (b) said trivial. | Lane stands. |
 
+**Backlog link:** a request that adds a capability no row covers is not a change — it is a new
+requirement (`/backlog`, ADD) and a new feature. A CHANGE-lane mini-spec names the row whose
+behavior it changes in its `- Requirements:` line (often an `Existing` one).
+
 Label text, a typo, a color token used in one place: trivial. "Same label, but now it depends on
 the user's plan": a criterion changed → CHANGE. "The button never did what the spec says": BUG.
 
