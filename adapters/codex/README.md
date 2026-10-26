@@ -9,7 +9,7 @@ What it adds on top of the core:
   with no wiring at all. This adapter only delivers the commands.
 - **Commands as skills** (`skills/<name>/SKILL.md`): the same twelve commands as every other
   adapter — segments `$analyze`, `$plan`, `$build`, `$review`, `$verify`; the chainer
-  `$new-feature`; `$change`; and `$bootstrap`, `$fix-bug`, `$refactor`, `$adr`, `$recover`. Each is
+  `$new-feature`; `$change`; and `$bootstrap`, `$fix-bug`, `$refactor`, `$backlog`, `$adr`, `$recover`. Each is
   the same pointer as the Cursor command. *Segments always stop; /new-feature flows only as far
   as the mode allows.*
 - **Explicit only** (`skills/<name>/agents/openai.yaml`): `allow_implicit_invocation: false`, so

@@ -1,5 +1,5 @@
 #!/bin/sh
-# ANEW selftest — proves that scripts/check, scripts/doctor and scripts/residue behave as documented.
+# ANEW selftest — proves that scripts/check, scripts/doctor, scripts/residue and scripts/backlog behave as documented.
 # Every scenario runs in a throwaway copy of this workspace in a temp dir OUTSIDE the repo
 # (docs/testing.md, Evidence policy), asserts on the real output and exit code, and is deleted.
 # Exit 0 = all scenarios pass, exit 1 = at least one failed. Runs in CI next to doctor.
@@ -98,7 +98,7 @@ has "$LEAK" "the survivor is named with its command line"
 W="$TMP/ws"
 mkdir -p "$W"
 ( cd "$ROOT" && git ls-files --cached --others --exclude-standard ) \
-  | grep -E '^(AGENTS\.md|README\.md|\.anew-version|docs/|workflows/|prompts/|scripts/|adapters/|specs/(TEMPLATE[^/]*\.md|(active|done|plans)/README\.md|plans/TEMPLATE\.md)$)' \
+  | grep -E '^(AGENTS\.md|README\.md|\.anew-version|docs/|workflows/|prompts/|scripts/|adapters/|specs/(TEMPLATE[^/]*\.md|BACKLOG\.md|(active|done|plans)/README\.md|plans/TEMPLATE\.md)$)' \
   | ( cd "$ROOT" && tar -cf - -T - ) | ( cd "$W" && tar -xf - )
 git -C "$W" init -q
 git -C "$W" config core.autocrlf false   # the fixture is throwaway: no line-ending conversion noise
@@ -196,6 +196,68 @@ if grep -q 'STATUS: NOT CONFIGURED' "$ROOT/AGENTS.md" 2>/dev/null && [ -f "$ROOT
   out="changelog: $(sed -n 's/^## \(v[0-9][0-9.]*\) .*/\1/p' "$ROOT/CHANGELOG.md" | head -n 1) · .anew-version: $(head -n 1 "$ROOT/.anew-version" 2>/dev/null | tr -d '\r')"
   [ "${out%% ·*}" = "changelog: ${out##*.anew-version: }" ]; report $? "template: .anew-version matches the newest CHANGELOG entry"
 fi
+
+# --- scripts/backlog and the doctor checks built on it (same fixture) ---
+backlog() { run sh "$W/scripts/backlog" "$@"; }
+BLH='| ID | Requirement | Priority | State | Notes |'
+BLS='|---|---|---|---|---|'
+echo "== scripts/backlog =="
+reset; put specs/BACKLOG.md '# Backlog' '<!--' '| REQ-900 | example inside a comment | Must | Open | |' '-->' "$BLH" "$BLS" \
+  '| REQ-001 | Register | Must | Open | |' '| REQ-002 | Order | Must | Open | |' '| REQ-003 | Cancel | Should | Open | |' \
+  '| REQ-004 | Product list | — | Existing | |' '| REQ-005 | Push | Could | Dropped | no app |'
+put specs/done/0001-a.md '# Spec 0001' '- Status: Shipped' '- Requirements: REQ-001'
+put specs/active/0002-b.md '# Spec 0002' '- Status: In progress' '- Requirements: REQ-002'
+put specs/active/0003-c.md '# Spec 0003' '- Status: Draft' '- Requirements: REQ-002'
+put specs/active/0004-d.md '# Spec 0004 (mini)' '- Status: Draft' '- Requirements: REQ-004' '- Source: WI-7' '## Preserved behavior'
+backlog
+exits 0 "backlog: report runs"
+matches '^REQ-001 +Shipped ' "a requirement whose specs all shipped is Shipped"
+matches '^REQ-002 +In progress \(0/2 shipped\) ' "progress comes from the specs, with the split count"
+matches '^REQ-003 +Open ' "a requirement with no spec is Open"
+matches '^REQ-004 +Existing, change open ' "an Existing requirement under a mini-spec shows the open change"
+matches '^REQ-005 +Dropped ' "Dropped stays Dropped"
+hasnt "REQ-900" "rows inside HTML comments (the examples) are ignored"
+has "== 5 requirements: 1 shipped · 1 in work · 1 open · 1 existing · 1 dropped ==" "totals"
+backlog --md;      has "| REQ-002 | Order | Must | In progress (0/2 shipped) | 0002 In progress, 0003 Draft |" "--md prints a table row"
+backlog --x;       exits 2 "backlog: unknown argument"
+doctor --strict;   exits 0 "consistent backlog passes --strict"; has "ok    backlog consistent (5 requirement(s)" "consistent backlog is reported ok"
+put specs/active/0005-e.md '# Spec 0005' '- Status: Draft' '- Requirements: REQ-099'
+doctor --strict;   exits 1 "unknown requirement under --strict"; has "FAIL  backlog: spec 0005 names REQ-099, which is not in specs/BACKLOG.md" "a spec naming an unknown requirement is a gate"
+put specs/active/0005-e.md '# Spec 0005' '- Status: Draft' '- Requirements: <!-- none yet -->'
+doctor;            has "WARN  backlog: spec 0005 has no Requirements line" "a full spec with no requirement is reported"
+put specs/active/0005-e.md '# Spec 0005' '- Status: Draft' '- Requirements: REQ-004'
+doctor;            has "WARN  backlog: spec 0005 is a full spec for Existing REQ-004" "a full spec rebuilding an Existing requirement is reported"
+put specs/active/0005-e.md '# Spec 0005' '- Status: Draft' '- Requirements: REQ-005'
+doctor;            has "WARN  backlog: spec 0005 works on REQ-005, which is Dropped" "work on a Dropped requirement is reported"
+reset; put specs/BACKLOG.md "$BLH" "$BLS" '| REQ-001 | A | Must | Open | |' '| REQ-001 | B | Must | Done | |'
+doctor --strict;   exits 1 "duplicate requirement id under --strict"; has "FAIL  backlog: duplicate requirement id REQ-001" "duplicate ids are a gate"
+has "WARN  backlog: REQ-001 has State \"Done\"" "a hand-written progress state is reported"
+reset; put specs/active/0006-f.md '# Spec 0006' '- Status: Draft'
+doctor;            hasnt "has no Requirements line" "an empty backlog does not ask specs for requirements"
+
+echo "== doctor: size and fix-round limits =="
+reset; put specs/active/0011-big.md '# Spec 0011' '- Status: Draft' '- [ ] AC-1 —' '- [ ] AC-2 —' '- [ ] AC-3 —' '- [ ] AC-4 —' \
+  '- [ ] AC-5 —' '- [ ] AC-6 —' '- [ ] AC-7 —' '- [ ] AC-8 —' '- [ ] AC-9 —' '- [ ] AC-10 —' '- [x] AC-11 —'
+doctor;            exits 0 "oversized spec only warns"; has "WARN  spec 0011 has 11 acceptance criteria" "a spec over 10 criteria is reported"
+printf '%s\n' '(Split: proposed 0011, 0012; kept as one — Ada, one release)' >> "$W/specs/active/0011-big.md"
+doctor;            hasnt "spec 0011 has 11 acceptance criteria" "a recorded 'kept as one' clears it"
+reset; put specs/active/0012-wip.md '# Spec 0012' '- Status: In progress'
+put specs/plans/0012-plan.md '# Plan 0012' '- Approved by / on: Ada, 2026-10-26' '- R-06 decision: —'
+commit "fix(x): a [plan 0012/fix-3]"
+doctor --strict;   hasnt "without a recorded R-06 decision" "three fix rounds are within the limit"
+printf '%s\n' '- touched' >> "$W/specs/active/0012-wip.md"; commit "fix(x): b [plan 0012/fix-4]"
+doctor --strict;   exits 1 "fourth fix round without R-06 under --strict"; has "FAIL  fix round 4 on plan 0012 without a recorded R-06 decision" "round 4 without R-06 is a gate"
+put specs/plans/0012-plan.md '# Plan 0012' '- Approved by / on: Ada, 2026-10-26' '- R-06 decision: re-plan, Ada, 2026-10-27'
+doctor --strict;   hasnt "without a recorded R-06 decision" "a recorded R-06 decision clears it"
+
+echo "== doctor: reviewers stay read-only =="
+reset; doctor;     has "ok    reviewers are read-only (no edit tools)" "the shipped reviewers are read-only"
+put adapters/claude-code/.claude/agents/react-reviewer.md '---' 'name: react-reviewer' 'tools: Read, Grep, Glob, Bash' '---' 'body'
+doctor;            hasnt "react-reviewer" "a read-only stack reviewer passes"
+put adapters/claude-code/.claude/agents/react-reviewer.md '---' 'name: react-reviewer' 'tools: Read, Edit, Bash' '---'
+doctor;            exits 1 "an editing reviewer fails"; has "FAIL  reviewer can edit files: adapters/claude-code/.claude/agents/react-reviewer.md" "a reviewer with Edit is caught"
+put adapters/claude-code/.claude/agents/react-reviewer.md '---' 'name: react-reviewer' 'model: sonnet' '---' 'tools: Read'
+doctor;            has "FAIL  reviewer has no tools line (inherits edit tools)" "a reviewer with no tools line (outside frontmatter too) is caught"
 
 reset; rm -f "$W/docs/testing.md"
 doctor;            exits 1 "core file missing"; has "FAIL  missing: docs/testing.md" "missing core file is a failure"

@@ -14,6 +14,16 @@
 - Agent messages (handoff summaries, refusals, `Next:` lines): chat language; command names, file
   paths and protocol fields verbatim.
 
+## Layers & stack reviewers
+<!-- Filled at bootstrap when the repo holds more than one stack (e.g. a .NET API and a React app).
+     One row per layer. The Developer reads the rules doc of every layer it touches; REVIEW runs
+     the layer's stack reviewer as a read-only second pass over that layer's files
+     (docs/roles/reviewer.md). A rules doc holds that layer's real rules; this file keeps what is
+     shared by all layers. A stack reviewer is optional, and never has edit tools (doctor checks). -->
+| Layer | Paths | Rules | Stack reviewer |
+|---|---|---|---|
+| <!-- e.g. API --> | <!-- e.g. src/Api/** --> | <!-- e.g. docs/backend.md --> | <!-- e.g. csharp-reviewer, or — --> |
+
 ## Language & framework versions
 <!-- Pin what matters. -->
 

@@ -18,7 +18,9 @@ LANGUAGE → INSPECT → INTERVIEW → GENERATE → VERIFY → REPORT
 
 1. **INSPECT.** The agent examines the working tree. Empty (only ANEW files) → greenfield flow.
    Contains code → adoption flow: detect stack(s), build system, test setup, and existing
-   conventions *from the code*, to be confirmed rather than asked from scratch.
+   conventions *from the code*, to be confirmed rather than asked from scratch — plus a capability
+   inventory: what the product already does, proposed as `Existing` rows of `specs/BACKLOG.md`
+   with file-path evidence (`prompts/backlog.md`, INVENTORY).
 
 2. **INTERVIEW.** One topic at a time, every question carrying the agent's recommendation
    (proposal rule): product & domain terms, architecture style and module boundaries, forbidden
@@ -26,16 +28,17 @@ LANGUAGE → INSPECT → INTERVIEW → GENERATE → VERIFY → REPORT
    security posture, git rules, **trivial-change policy** (what label/typo-level changes
    require — (1) PR + one reviewer, no spec [recommended: cheap safety net]; (2) direct commit
    allowed on a trivial branch; (3) everything goes through a mini-spec [strictest] — written to
-   `docs/git.md` "Trivial changes"), and **operating mode (lite/strict)**.
+   `docs/git.md` "Trivial changes"), **operating mode (lite/strict)**, and **the first
+   requirements** — one line each, with a priority (greenfield: V1; brownfield: what comes next).
    **[GATE: human]** — your answers are the input; nothing is assumed.
 
 3. **GENERATE.** The agent fills `docs/*.md` from the interview, writes `scripts/check.conf`
    (build/test/lint commands for your stack), sets the Mode and Language lines in `AGENTS.md`, and rewrites
    `AGENTS.md`'s project summary — **keeping the invariant rules block verbatim**, keeping the
    "Start work" and "Language" sentences of the Operating mode section (values filled in), and
-   keeping the file ≤ 40 lines. For existing repos it may also propose toolchain steps for `.github/workflows/check.yml`.
+   keeping the file ≤ 40 lines. The approved requirements and inventory go into `specs/BACKLOG.md`. For existing repos it may also propose toolchain steps for `.github/workflows/check.yml`.
 
-4. **VERIFY.** Run `./scripts/doctor` (structure + configuration) and `./scripts/check`
+4. **VERIFY.** Run `./scripts/doctor` (structure + configuration), `./scripts/backlog` and `./scripts/check`
    (must pass; in an empty greenfield it may be a no-op with a note), then the residue test
    (`./scripts/residue`, both profiles; `docs/testing.md`, Resource hygiene)
    — reported at the gate; failing it means not done.

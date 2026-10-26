@@ -97,7 +97,7 @@ Each stage is a *segment* with an entry condition and a handoff written to files
 | `/review <NNNN>` | Independent review — read-only where the tool supports it (see "How strongly is each rule held?") | Findings report → human triage |
 | `/verify <NNNN>` | QA: criterion ↔ evidence table | Table → human ship |
 | `/change "<request> <work item>"` | Change an existing behavior: triage rubric (bug → `/fix-bug` · trivial → one commit per `docs/git.md` policy · change → mini-spec lane), then the lane by mode (`workflows/change-request.md`) | Triage verdict; then the lane's gates |
-| `/bootstrap` · `/fix-bug` · `/refactor` · `/adr` · `/recover` | Other workflows — same commands in Claude Code, Cursor, Copilot and Codex; any other tool pastes the prompts | Their gates |
+| `/bootstrap` · `/fix-bug` · `/refactor` · `/backlog` · `/adr` · `/recover` | Other workflows — same commands in Claude Code, Cursor, Copilot and Codex; any other tool pastes the prompts | Their gates |
 
 Claude Code and Cursor expose these as slash commands, GitHub Copilot as prompt files, Codex as
 project-level skills (`$analyze`, explicit only; it reads `AGENTS.md` natively), and any
@@ -131,12 +131,17 @@ Not every rule is held the same way, and not every tool can hold it the same way
 | Spec approved before plan | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) |
 | Plan approval recorded before build | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) |
 | Who approved the plan | Documented | Documented | Documented | Documented | Documented |
-| Producer ≠ verifier | Enforced (reviewer subagent has no Edit/Write; Bash kept for `scripts/check`, instructed never to write) | Enforced (reviewer agent, no edit tools; `runCommands` kept) | Documented (fresh chat) | Documented (fresh session) | Documented (fresh session) |
+| Producer ≠ verifier | Enforced (reviewer subagent has no Edit/Write; Bash kept for `scripts/check`, instructed never to write) + Validated (doctor fails a `*reviewer` agent with edit tools or no tools line) | Enforced (reviewer agent, no edit tools; `runCommands` kept) + Validated (same doctor check) | Documented (fresh chat) | Documented (fresh session) | Documented (fresh session) |
 | Shipped specs immutable | Enforced (hook, editor tools) + Validated (CI) | Documented (instruction) + Validated (CI) | Documented (rule) + Validated (CI) | Validated (CI) | Validated (CI) |
 | No force-push / hard reset | Enforced (permission deny) | Documented | Documented | Documented | Documented |
 | "Done" = `scripts/check` green | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) |
 | Evidence is referenced, not stored (no `evidence/`, no repo clone inside the repo) | Validated (doctor warns, every mode) | Validated (doctor warns, every mode) | Validated (doctor warns, every mode) | Validated (doctor warns, every mode) | Validated (doctor warns, every mode) |
 | `scripts/check` leaves nothing running, and no data for the next run | Documented (the residue test, `scripts/residue`, runs at bootstrap — not in CI; it does not measure data) | Documented (same) | Documented (same) | Documented (same) | Documented (same) |
+| Every spec names an existing requirement; no duplicate requirement ids | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) |
+| Progress lives in the spec, never in the backlog | Validated (doctor warns on a hand-written State) | Validated (same) | Validated (same) | Validated (same) | Validated (same) |
+| Spec over 10 criteria is split or records "kept as one" | Validated (doctor warns) | Validated (same) | Validated (same) | Validated (same) | Validated (same) |
+| Fix round 4+ needs a recorded R-06 decision | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) |
+| Build only what the spec asks; one primary test per criterion | Documented (reviewer reports scope and unmapped tests as findings) | Documented (same) | Documented (same) | Documented (same) | Documented (same) |
 | UI specs define flow, states and the design link | Documented | Documented | Documented | Documented | Documented |
 | Evidence cites the full profile, not `--fast` | Validated (doctor warns: shipped specs, and the PR description in CI) | Validated (same) | Validated (same) | Validated (same) | Validated (same) |
 
@@ -160,6 +165,7 @@ branch protection setting makes "no force-push" Enforced for every tool.
 | `workflows/` | The processes: bootstrap, feature-development, change-request, bug-fix, refactor, incident. Steps, roles, gates, evidence — each step points to its prompt. `segments.md` defines the feature stages as stop-at-handoff segments that every adapter maps onto. |
 | `prompts/` | Reusable prompt bodies with placeholders. `prompts/recovery/` is the catalog of safe ramps (R-01…R-12) for when things go wrong. |
 | `adapters/` | Per-tool wiring. `scripts/init <tool>` installs one. |
+| `specs/BACKLOG.md` · `scripts/backlog` | Every requirement of the product, one line each: `Open`, `Existing` (already built — the brownfield inventory) or `Dropped`. Specs link themselves with `- Requirements: REQ-NNN`; `scripts/backlog` derives each row's progress from those specs' `Status`, and doctor reports broken links. `/backlog` adds, changes or inventories rows. |
 | `scripts/check` | The single verification contract: humans, agents, hooks, and CI all run this one command. Stack-specific internals live in `check.conf`, written at bootstrap. `--fast` runs only the steps tagged `[fast]` for the inner loop; only the full run is evidence. Reports each step's duration and the total. |
 | `scripts/doctor` | Workspace health: structure, configuration state, adapter presence, spec/plan gate consistency (`--strict` in CI), evidence hygiene warnings. |
 | `scripts/residue` | The residue test (`docs/testing.md`, Resource hygiene): runs check twice and names every process or memory drop that outlives a run. Bootstrap runs it for both profiles; rerun it whenever check.conf changes. |

@@ -21,6 +21,7 @@
 6. **Proposal rule.** Every question, option, or finding comes with your own recommendation and rationale. The human decides; nothing is applied without approval.
 7. **Shipped specs are immutable.** Files under `specs/done/` are never edited.
 8. **Uncertainty is surfaced, not assumed.** On ambiguity or a docs/code conflict: stop and use the matching recovery ramp (`prompts/recovery/`).
+9. **Build only what the spec asks.** No unrequested features, settings, abstractions or "future-proofing"; no test the plan's criterion ↔ test map does not list. Anything more is a proposal, never a change.
 
 ## Where things live
 
@@ -33,7 +34,7 @@
 | Security rules | `docs/security.md` |
 | Git & branching rules | `docs/git.md` |
 | Decisions (ADRs) · roles (who may do what) | `docs/decisions/` · `docs/roles/` |
-| Specs & plans | `specs/active/` · `specs/plans/` · shipped → `specs/done/` |
+| Requirements · specs & plans | `specs/BACKLOG.md` (`scripts/backlog`) · `specs/active/` · `specs/plans/` · shipped → `specs/done/` |
 | Processes & gates · prompts & recovery ramps | `workflows/` · `prompts/` |
 | Every command: what it does, where it stops, lite vs strict | `docs/commands.md` |
 | The single verification command | `scripts/check` |

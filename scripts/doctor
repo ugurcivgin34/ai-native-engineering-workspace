@@ -21,14 +21,14 @@ for f in \
   docs/architecture.md docs/domain.md docs/conventions.md docs/testing.md docs/security.md docs/git.md \
   docs/decisions/README.md docs/decisions/TEMPLATE.md \
   docs/roles/README.md docs/roles/analyst.md docs/roles/developer.md docs/roles/reviewer.md docs/roles/qa.md \
-  specs/TEMPLATE.md specs/TEMPLATE-mini.md specs/plans/TEMPLATE.md \
+  specs/TEMPLATE.md specs/TEMPLATE-mini.md specs/plans/TEMPLATE.md specs/BACKLOG.md \
   specs/active/README.md specs/plans/README.md specs/done/README.md \
   workflows/README.md workflows/bootstrap.md workflows/feature-development.md workflows/bug-fix.md \
   workflows/refactor.md workflows/incident.md workflows/segments.md workflows/change-request.md \
   prompts/README.md prompts/bootstrap.md prompts/clarify.md prompts/spec.md prompts/plan.md \
-  prompts/build.md prompts/review.md prompts/verify.md prompts/adr.md prompts/recovery/README.md \
+  prompts/build.md prompts/review.md prompts/verify.md prompts/adr.md prompts/backlog.md prompts/recovery/README.md \
   docs/commands.md \
-  scripts/check
+  scripts/check scripts/backlog
 do
   if [ -f "$ROOT/$f" ]; then :; else fail "missing: $f"; fi
 done
@@ -212,10 +212,73 @@ if [ -d "$ROOT/adapters/claude-code/.claude/commands" ]; then
     x=/$(basename "$c" .md)
     grep -qF "### \`$x\`" "$ROOT/docs/commands.md" 2>/dev/null || { fail "command reference out of date: $x missing from docs/commands.md"; ref_fails=$((ref_fails + 1)); }
   done
-  for s in init doctor check residue selftest; do
+  for s in init doctor check residue selftest backlog; do
     grep -qF "### \`scripts/$s\`" "$ROOT/docs/commands.md" 2>/dev/null || { fail "command reference out of date: scripts/$s missing from docs/commands.md"; ref_fails=$((ref_fails + 1)); }
   done
   [ "$ref_fails" -eq 0 ] && ok "command reference covers every command (docs/commands.md)"
+fi
+
+# --- reviewers stay read-only (AGENTS.md rule 3): a Claude Code subagent whose name ends in
+# "reviewer" must list its tools, and none of them may edit; a Copilot reviewer agent likewise.
+# A missing tools line inherits every tool, including Edit and Write. Missing = FAIL: the README
+# claims "Producer ≠ verifier: Enforced" for these tools.
+ro_fails=0
+for a in "$ROOT/.claude/agents/"*reviewer.md "$ROOT/adapters/claude-code/.claude/agents/"*reviewer.md \
+         "$ROOT/.github/agents/"*reviewer.agent.md "$ROOT/adapters/github-copilot/agents/"*reviewer.agent.md; do
+  [ -f "$a" ] || continue
+  tools=$(awk 'NR == 1 && /^---/ { f = 1; next } f && /^---/ { exit } f' "$a" | grep -m1 '^tools:' | sed 's/^tools:[[:space:]]*//')
+  if [ -z "$tools" ]; then
+    fail "reviewer has no tools line (inherits edit tools): ${a#"$ROOT"/}"; ro_fails=$((ro_fails + 1))
+  elif printf '%s' "$tools" | grep -qiE 'Edit|Write|NotebookEdit|editFiles|createFile'; then
+    fail "reviewer can edit files: ${a#"$ROOT"/} (tools: $tools)"; ro_fails=$((ro_fails + 1))
+  fi
+done
+[ "$ro_fails" -eq 0 ] && ok "reviewers are read-only (no edit tools)"
+
+# --- backlog: the requirement list and the specs that link to it (scripts/backlog --lint) ---
+# Broken links and duplicate ids are gates (WARN locally, FAIL in CI); the rest warn.
+if [ -f "$ROOT/specs/BACKLOG.md" ] && [ -f "$ROOT/scripts/backlog" ]; then
+  bl_findings=$(sh "$ROOT/scripts/backlog" --lint 2>/dev/null)
+  bl_n=0
+  oldifs=$IFS; IFS='
+'
+  for line in $bl_findings; do
+    bl_n=$((bl_n + 1))
+    case "$line" in
+      gate*) gate "${line#*	}" ;;
+      *) warn "${line#*	}" ;;
+    esac
+  done
+  IFS=$oldifs
+  bl_rows=$(sh "$ROOT/scripts/backlog" 2>/dev/null | sed -n 's/^== \([0-9][0-9]*\) requirements:.*/\1/p')
+  [ "$bl_n" -eq 0 ] && ok "backlog consistent (${bl_rows:-0} requirement(s), specs linked)"
+fi
+
+# --- spec size (prompts/spec.md, SIZE): > 10 acceptance criteria needs a recorded "kept as one" ---
+for s in "$ROOT/specs/active/"[0-9]*.md; do
+  [ -f "$s" ] || continue
+  grep -q '^## Preserved behavior' "$s" && continue   # mini-specs have their own limits
+  acs=$(grep -c '^- \[[ xX]\] AC-[0-9]' "$s")
+  if [ "$acs" -gt 10 ] && ! grep -qi 'kept as one' "$s"; then
+    warn "spec $(basename "$s" | sed 's/-.*//') has $acs acceptance criteria — split it, or record 'Split: proposed …; kept as one — <who>, <reason>' (prompts/spec.md, SIZE)"
+  fi
+done
+
+# --- fix-round limit (prompts/build.md, R-06): a fourth round needs a recorded R-06 decision ---
+# Counts [plan NNNN/fix-k] in commit subjects reachable from HEAD; only specs still in active/.
+if git -C "$ROOT" rev-parse --verify --quiet HEAD >/dev/null 2>&1; then
+  subjects=$(git -C "$ROOT" log --format=%s HEAD 2>/dev/null)
+  for p in "$ROOT/specs/plans/"[0-9]*-plan.md; do
+    [ -f "$p" ] || continue
+    n=$(basename "$p" | sed 's/-plan\.md$//')
+    ls "$ROOT/specs/active/$n-"*.md >/dev/null 2>&1 || continue
+    k=$(printf '%s\n' "$subjects" | grep -o "\[plan $n/fix-[0-9]*\]" | sed 's/.*fix-//; s/\]//' | sort -n | tail -n 1)
+    [ -n "$k" ] && [ "$k" -ge 4 ] || continue
+    r06=$(grep -m1 '^- R-06 decision:' "$p" | sed 's/<!--.*-->//g; s/^- R-06 decision:[[:space:]]*//; s/[[:space:]]*$//')
+    case "$r06" in
+      ""|"-"|"—") gate "fix round $k on plan $n without a recorded R-06 decision — rounds past 3 need prompts/recovery/fix-loop-limit.md first" ;;
+    esac
+  done
 fi
 
 # --- hygiene ---

@@ -7,6 +7,8 @@ No branch, plan, or code exists before a spec does.
 - Existing behavior must change (CHANGE lane of `workflows/change-request.md`), a refactor
   (`workflows/refactor.md`, Changed behavior = none) or an incident (`workflows/incident.md`) →
   `specs/TEMPLATE-mini.md` (`Source:` mandatory; changed + preserved behavior criteria).
+- Every spec names the requirements it delivers: `- Requirements: REQ-NNN` (rows of
+  `specs/BACKLOG.md`). Progress lives here, in `Status`; `scripts/backlog` reads it.
 - Numbering is one sequence shared by `active/`, `done/`, and `plans/`: next = highest + 1.
   `scripts/doctor` reports duplicates — a twin spec is a process failure, not a naming issue.
 - `Status` moves Draft → Approved → In progress → Shipped; at ship the file moves to `done/`.

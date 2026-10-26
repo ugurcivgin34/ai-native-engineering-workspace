@@ -24,6 +24,12 @@ saved artifacts), or explicitly say "clean":
 - Performance: obvious waste — N+1 patterns, needless materialization (measure before claiming;
   R-12).
 - Tests: criterion↔test map complete? Do tests assert BEHAVIOR or just status codes?
+  Test budget (docs/testing.md): a test with no row in the map, the same behavior proven again at a
+  higher level, or e2e for a criterion not marked critical → finding (recommend: delete or propose
+  it as a criterion).
+- Scope: anything the spec did not ask for — a feature, setting, endpoint, abstraction or
+  "future-proofing" layer (AGENTS.md rule 9) → finding (recommend: remove, or a new requirement
+  via /backlog).
 - Maintainability: naming, layer violations (docs/architecture.md), dead code.
 
 Order findings by severity. Each finding carries a recommended action (proposal rule).
