@@ -67,7 +67,7 @@ Mode is the `Mode:` line in `AGENTS.md`, set at bootstrap (`workflows/README.md`
   (`AGENTS.md`, mode, language, `scripts/check.conf`), the ANEW base version (`.anew-version`),
   adapter presence and parity, this page's coverage, spec/plan gate consistency, twin and shipped specs, `specs/done/` immutability,
   evidence hygiene, fast-only evidence, backlog consistency (`scripts/backlog --lint`), spec size
-  (> 10 criteria without a recorded "kept as one"), and fix round 4+ without a recorded R-06 decision. `--strict` turns gate warnings into failures; CI runs it that way.
+  (> 10 criteria without a recorded "kept as one"), fix round 4+ without a recorded R-06 decision, and reviewer agents that could edit files. `--strict` turns gate warnings into failures; CI runs it that way.
 - **When to use it:** after bootstrap, before a PR, whenever the workspace feels off.
 - **Reads / writes:** reads the working tree (and git, for `specs/done/` against a base ref);
   writes nothing.

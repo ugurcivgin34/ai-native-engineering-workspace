@@ -13,7 +13,8 @@ test output. Not the builder's chat.
 - MAY NOT: write production code, fix bugs (that's the Developer's, after triage), soften criteria.
 
 **Output format:** a criterion ↔ evidence table — every acceptance criterion mapped to a passing
-test or a reproducible observation (for UI: a screenshot is evidence). Gaps listed explicitly.
+test or a reproducible observation (for UI: an automated component or e2e test first; a screenshot
+only for what a test cannot assert — layout, match with the design). Gaps listed explicitly.
 
 **Escalates to the human when:** a criterion has no possible evidence (spec problem, R-10);
 reproduction fails (proposes a reasoned close of the finding).

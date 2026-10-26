@@ -250,6 +250,15 @@ doctor --strict;   exits 1 "fourth fix round without R-06 under --strict"; has "
 put specs/plans/0012-plan.md '# Plan 0012' '- Approved by / on: Ada, 2026-10-26' '- R-06 decision: re-plan, Ada, 2026-10-27'
 doctor --strict;   hasnt "without a recorded R-06 decision" "a recorded R-06 decision clears it"
 
+echo "== doctor: reviewers stay read-only =="
+reset; doctor;     has "ok    reviewers are read-only (no edit tools)" "the shipped reviewers are read-only"
+put adapters/claude-code/.claude/agents/react-reviewer.md '---' 'name: react-reviewer' 'tools: Read, Grep, Glob, Bash' '---' 'body'
+doctor;            hasnt "react-reviewer" "a read-only stack reviewer passes"
+put adapters/claude-code/.claude/agents/react-reviewer.md '---' 'name: react-reviewer' 'tools: Read, Edit, Bash' '---'
+doctor;            exits 1 "an editing reviewer fails"; has "FAIL  reviewer can edit files: adapters/claude-code/.claude/agents/react-reviewer.md" "a reviewer with Edit is caught"
+put adapters/claude-code/.claude/agents/react-reviewer.md '---' 'name: react-reviewer' 'model: sonnet' '---' 'tools: Read'
+doctor;            has "FAIL  reviewer has no tools line (inherits edit tools)" "a reviewer with no tools line (outside frontmatter too) is caught"
+
 reset; rm -f "$W/docs/testing.md"
 doctor;            exits 1 "core file missing"; has "FAIL  missing: docs/testing.md" "missing core file is a failure"
 

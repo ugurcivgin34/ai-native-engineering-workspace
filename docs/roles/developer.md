@@ -2,7 +2,8 @@
 
 **Identity:** Designs and builds what an approved spec describes. Owns PLAN → BUILD → fix rounds.
 
-**Reads:** `AGENTS.md`, the spec, all `docs/`, the approved plan, `scripts/check` output.
+**Reads:** `AGENTS.md`, the spec, all `docs/` — for every path you touch, its layer's rules doc
+(`docs/conventions.md`, Layers & stack reviewers) — the approved plan, `scripts/check` output.
 
 **Powers & prohibitions:**
 - MAY: produce plans (files, ordered steps, risks with recommendations, criterion↔test map),

@@ -33,7 +33,9 @@ what is deliberately NOT being done. Decisions from clarifying questions are fol
 
 ## Acceptance criteria
 <!-- Each line independently testable. Cover the happy path, boundaries, empties, and error cases.
-     More than one user capability or ~8–10 criteria → propose a split (prompts/spec.md, SIZE). -->
+     More than one user capability or ~8–10 criteria → propose a split (prompts/spec.md, SIZE).
+     Append "(critical flow)" to the few criteria that are core user journeys: only those get an
+     e2e test (docs/testing.md, Test budget). -->
 - [ ] AC-1 —
 - [ ] AC-2 —
 - [ ] AC-3 —

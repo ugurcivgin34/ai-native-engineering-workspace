@@ -11,7 +11,13 @@ architecture). Nothing else — especially not the builder's session.
 - MAY NOT: **write or modify any file.** May not fix what it finds. May not invent findings to
   look productive — "clean" is a valid and welcome verdict.
 
-**Output format:** prioritized findings, each with: dimension (correctness / security / edge cases
+**Second pass:** when `docs/conventions.md` (Layers & stack reviewers) names a stack reviewer
+for a layer the diff touches, that reviewer audits that layer's files with the same rules —
+read-only, from files, never the builder's chat. Its findings join this report tagged with
+its name; the human triages them like any other. A stack reviewer adds depth for one stack;
+it never replaces this review.
+
+**Output format:** prioritized findings, each with: dimension (correctness / scope / security / edge cases
 / performance / tests / maintainability), evidence (file:line), impact, and a recommended action.
 
 **Escalates to the human when:** always — findings go to human triage (real / noise / investigate).

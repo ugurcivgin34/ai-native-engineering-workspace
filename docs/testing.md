@@ -3,9 +3,26 @@
 > **Template — filled during bootstrap.**
 
 ## The contract
-- Every acceptance criterion maps to at least one test (criterion ↔ test map lives in the plan).
+- Every acceptance criterion maps to a test (criterion ↔ test map lives in the plan) — see Test budget.
 - Tests assert **behavior**, not implementation details or mere status codes.
 - The whole suite runs inside `scripts/check` — one command, everywhere.
+
+## Test budget
+More tests are not more proof. Every extra test is run time on every check, review reading and a
+place for flakiness — paid on each of the dozens of runs an agent makes.
+1. **One primary test per acceptance criterion**, at the **lowest level that proves it**: a
+   business rule → a unit test; an endpoint's behavior (validation, authorization, serialization)
+   → an integration test through the real pipeline; a user journey → e2e. The same behavior is
+   not proven again one level up "to be safe".
+2. **e2e is for critical flows only** — the few journeys the spec marks as such (sign-up, pay,
+   the core loop). A criterion is not moved to e2e because it is easier to write there.
+3. **A test with no row in the plan's criterion ↔ test map is not written.** Extra edge cases
+   found while building are proposed as new criteria (R-08), not added silently. The reviewer
+   reports unmapped tests as a finding.
+4. **No coverage target.** Coverage is a symptom, not a goal; a percentage target makes an agent
+   write tests for lines instead of behavior. Coverage may be read in review, never gated.
+5. Exceptions — regression tests from `bug-fix.md`, characterization tests, R-03/R-04 proofs —
+   have their own rule and their own row in the map.
 
 ## Frameworks & layout
 <!-- Test framework(s), where tests live, naming pattern. -->
@@ -23,7 +40,11 @@ Before refactoring untested code (`workflows/refactor.md`) and for brownfield ch
 included. They are written from observation, not from what the code "should" do.
 
 ## Evidence for UI criteria
-A screenshot is evidence for a UI criterion; for change requests, before/after screenshots that
+Behavior on screen — a state is shown, a button is disabled, an error appears, a flow reaches its
+end — is proven by an automated test (component test, or e2e for a critical flow), never by a
+screenshot alone: a picture cannot be re-run, and its reader may not know what to look for.
+A screenshot is evidence only for what a test cannot assert — layout, visual match with the
+linked design; for change requests, before/after screenshots that
 also show the preserved behavior. Screenshots go into the PR, not the repo (Evidence policy).
 A screenshot proves a criterion only against the spec's "User experience": every state it lists
 (empty, loading, error, success, no permission), compared with the linked design if there is one.

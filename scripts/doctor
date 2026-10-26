@@ -218,6 +218,23 @@ if [ -d "$ROOT/adapters/claude-code/.claude/commands" ]; then
   [ "$ref_fails" -eq 0 ] && ok "command reference covers every command (docs/commands.md)"
 fi
 
+# --- reviewers stay read-only (AGENTS.md rule 3): a Claude Code subagent whose name ends in
+# "reviewer" must list its tools, and none of them may edit; a Copilot reviewer agent likewise.
+# A missing tools line inherits every tool, including Edit and Write. Missing = FAIL: the README
+# claims "Producer ≠ verifier: Enforced" for these tools.
+ro_fails=0
+for a in "$ROOT/.claude/agents/"*reviewer.md "$ROOT/adapters/claude-code/.claude/agents/"*reviewer.md \
+         "$ROOT/.github/agents/"*reviewer.agent.md "$ROOT/adapters/github-copilot/agents/"*reviewer.agent.md; do
+  [ -f "$a" ] || continue
+  tools=$(awk 'NR == 1 && /^---/ { f = 1; next } f && /^---/ { exit } f' "$a" | grep -m1 '^tools:' | sed 's/^tools:[[:space:]]*//')
+  if [ -z "$tools" ]; then
+    fail "reviewer has no tools line (inherits edit tools): ${a#"$ROOT"/}"; ro_fails=$((ro_fails + 1))
+  elif printf '%s' "$tools" | grep -qiE 'Edit|Write|NotebookEdit|editFiles|createFile'; then
+    fail "reviewer can edit files: ${a#"$ROOT"/} (tools: $tools)"; ro_fails=$((ro_fails + 1))
+  fi
+done
+[ "$ro_fails" -eq 0 ] && ok "reviewers are read-only (no edit tools)"
+
 # --- backlog: the requirement list and the specs that link to it (scripts/backlog --lint) ---
 # Broken links and duplicate ids are gates (WARN locally, FAIL in CI); the rest warn.
 if [ -f "$ROOT/specs/BACKLOG.md" ] && [ -f "$ROOT/scripts/backlog" ]; then

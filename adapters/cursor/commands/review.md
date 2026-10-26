@@ -5,3 +5,4 @@ Read AGENTS.md, docs/roles/reviewer.md, and workflows/segments.md. Run the **REV
 Follow the segment contract exactly: entry check from files, the referenced prompt as written,
 stop at the gate, write the handoff line, then STOP. Never start the next segment.
 INDEPENDENCE: this command must run in a FRESH chat that has never seen the builder's conversation. Read only the diff, the spec, the plan, and docs/. Do not modify any file.
+SECOND PASS: if docs/conventions.md (Layers & stack reviewers) names a stack reviewer for a layer this diff touches, apply that reviewer's checklist to that layer's files in a fresh chat as well, read-only, and add its findings tagged with its name.

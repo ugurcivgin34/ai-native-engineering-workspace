@@ -19,6 +19,29 @@ the core is Markdown plus a few POSIX scripts, so upgrades are file edits, not m
    ADRs are never renumbered.
 6. Write the new version into `.anew-version`.
 
+## Local extensions on v1.16 — backlog, scope and test budget
+
+Not an upstream release: additions made in this copy on top of v1.16. `.anew-version` stays
+`v1.16`, the upstream base for future upgrades; when taking a newer upstream version, keep the
+items below (scripts: apply upstream's behavior list onto these extensions, never a plain copy).
+
+- **Backlog** (`specs/BACKLOG.md`, `scripts/backlog`, `/backlog`, `prompts/backlog.md`): every
+  requirement, one line each, State `Open` / `Existing` / `Dropped`. Specs link themselves with
+  `- Requirements: REQ-NNN`; progress is derived from their `Status`, never typed. Bootstrap
+  writes the first list and, on existing code, an inventory of `Existing` capabilities.
+  ANALYZE finds or proposes the row before the spec.
+- **Doctor** (Documented → Validated): broken requirement links and duplicate ids (gate),
+  hand-written progress, untracked full specs, full specs rebuilding an `Existing` requirement,
+  work on `Dropped` ones (warn); spec over 10 criteria without "kept as one" (warn); fix round 4+
+  without `R-06 decision:` in the plan (gate); a `*reviewer` agent with edit tools or no tools
+  line (fail). `scripts/selftest` covers each.
+- **Scope and test budget:** AGENTS.md rule 9 (build only what the spec asks); docs/testing.md
+  "Test budget" (one primary test per criterion at the lowest level, e2e only for criteria marked
+  `(critical flow)`, no coverage target); plan, review and reviewer card enforce it as findings.
+- **Layers & stack reviewers** (docs/conventions.md): one rules doc per layer; `/review` runs a
+  layer's read-only stack reviewer as a second pass. UI behavior is proven by a test; a screenshot
+  only for layout and design match (docs/testing.md, docs/roles/qa.md).
+
 ## v1.16 — A feature fits in a day
 
 From a field project where one feature (22 acceptance criteria, four fix rounds) took over a
