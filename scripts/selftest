@@ -283,6 +283,39 @@ doctor;            exits 1 "an editing reviewer fails"; has "FAIL  reviewer can 
 put adapters/claude-code/.claude/agents/react-reviewer.md '---' 'name: react-reviewer' 'model: sonnet' '---' 'tools: Read'
 doctor;            has "FAIL  reviewer has no tools line (inherits edit tools)" "a reviewer with no tools line (outside frontmatter too) is caught"
 
+# --- Claude Code hooks: they make "Enforced" true, so they are tested like the scripts ---
+H="$W/adapters/claude-code/.claude/hooks"
+if [ -d "$H" ]; then
+  echo "== claude-code hooks =="
+  reset
+  hook() { name=$1; tool=$2; key=$3; val=$4
+    out=$(printf '{"tool_name":"%s","tool_input":{"%s":"%s"}}' "$tool" "$key" "$val" | CLAUDE_PROJECT_DIR="$W" sh "$H/$name" 2>&1); rc=$?; }
+  blocks() { hook "$@"; [ "$rc" -eq 2 ]; report $? "blocks: $2 $4"; }
+  allows() { hook "$@"; [ "$rc" -eq 0 ]; report $? "allows: $2 $4"; }
+  blocks protect-shipped.sh Edit file_path "$W/specs/done/0001-a.md"
+  blocks protect-shipped.sh Write file_path "$W/specs/active/../done/0001-a.md"
+  allows protect-shipped.sh Edit file_path "$W/specs/active/0001-a.md"
+  put AGENTS.md '# AGENTS.md (configured)'
+  blocks protect-config.sh Edit file_path "$W/web/.eslintrc.json"
+  blocks protect-config.sh Write file_path "$W/scripts/check.conf"
+  blocks protect-config.sh Edit file_path "$W/src/Directory.Build.props"
+  allows protect-config.sh Edit file_path "$W/src/App.tsx"
+  put specs/active/0014-lint.md '# Spec 0014' '- Status: In progress'
+  put specs/plans/0014-plan.md '# Plan 0014' '- Approved by / on: Ada, 2026-10-26' '## Files to change or add' '- web/.eslintrc.json'
+  allows protect-config.sh Edit file_path "$W/web/.eslintrc.json"
+  for c in 'rm -rf build' 'rm -fr build' 'rm -r -f build' 'rm --recursive --force build' 'cd a && sudo rm -Rf b' \
+           'git push --force origin main' 'git push origin +main' 'git push --force-with-lease' 'git -C app reset --hard' \
+           'git clean -fdx' 'echo x > specs/done/0001-a.md' "sed -i s/a/b/ specs/done/0001-a.md" 'git mv specs/done/a.md specs/active/' \
+           'sed -i s/x/y/ web/tsconfig.json'; do blocks guard-bash.sh Bash command "$c"; done
+  for c in 'rm build/a.txt' 'rm --force a.txt' 'git push -u origin feature/x' 'cat specs/done/0001-a.md 2>&1' \
+           'grep -i foo specs/done/0001-a.md' 'git mv specs/active/0001-a.md specs/done/' 'git reset --soft HEAD~1' \
+           'dotnet test 2>&1 | tee test.log' 'sed -i s/a/b/ web/.eslintrc.json'; do allows guard-bash.sh Bash command "$c"; done
+  put AGENTS.md '> **STATUS: NOT CONFIGURED.**'
+  allows protect-config.sh Write file_path "$W/scripts/check.conf"
+else
+  echo "skip  claude-code hooks (no adapters/ in this repo)"
+fi
+
 reset; rm -f "$W/docs/testing.md"
 doctor;            exits 1 "core file missing"; has "FAIL  missing: docs/testing.md" "missing core file is a failure"
 
