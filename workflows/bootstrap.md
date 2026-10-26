@@ -16,7 +16,8 @@ LANGUAGE → INSPECT → INTERVIEW → GENERATE → VERIFY → REPORT
    template headings) stay English so the gates and `scripts/doctor` keep working.
    **[GATE: human]**
 
-1. **INSPECT.** The agent examines the working tree. Empty (only ANEW files) → greenfield flow.
+1. **INSPECT.** The agent examines the working tree — in sidecar mode (`.anew-code`, `docs/git.md`)
+   the code repository it names. Empty (only ANEW files) → greenfield flow.
    Contains code → adoption flow: detect stack(s), build system, test setup, and existing
    conventions *from the code*, to be confirmed rather than asked from scratch — plus a capability
    inventory: what the product already does, proposed as `Existing` rows of `specs/BACKLOG.md`

@@ -11,9 +11,12 @@ criterion ↔ evidence table:
 Evidence is one of:
 - a named passing test — shown passing in this commit's full run, or run it and show the output;
 - a reproducible observation — command + output;
-- for UI criteria, a screenshot; for change requests, before/after screenshots that cover the
-  preserved behavior too. Each is checked against the spec's User experience: every listed
-  state and the design link, not only the happy path.
+- UI behavior (a state shown, an error, a flow reaching its end): a named passing component or
+  e2e test, like any other criterion. You never operate the UI yourself to verify it
+  (docs/testing.md, UI tests, rule 1).
+- Layout and design match only: a screenshot from the human or one an e2e run attached in CI;
+  for change requests, before/after covering the preserved behavior too. Checked against the
+  spec's User experience: every listed state and the design link.
 Each row's evidence is a pointer — test name + reproduction command, or a PR link for
 non-reproducible evidence. Show output in the conversation; write no output files
 (docs/testing.md, Evidence policy). Evidence cites a full-profile run — a CHECK GREEN (fast, …)

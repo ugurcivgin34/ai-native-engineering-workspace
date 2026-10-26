@@ -24,6 +24,29 @@ place for flakiness — paid on each of the dozens of runs an agent makes.
 5. Exceptions — regression tests from `bug-fix.md`, characterization tests, R-03/R-04 proofs —
    have their own rule and their own row in the map.
 
+## UI tests
+UI work is where test suites get slow first. These rules keep it fast without losing the proof.
+1. **The agent never verifies a UI by operating it** — driving a browser or a desktop app through
+   screenshots, clicks and key presses (browser automation, computer use). It is the slowest step
+   there is, it is repeated on every fix round, and it leaves nothing that re-runs. The only
+   exception is a one-off look the human asks for (does it match the design?) — never evidence,
+   never inside a fix loop.
+2. **Logic lives outside the view.** React: hooks, services, state stores; desktop .NET: MVVM —
+   view models and services, no logic in code-behind. That logic gets fast unit tests; the view
+   stays thin, so few view tests are needed.
+3. **One test per behavior, not per input device.** Component tests act like a user (e.g.
+   Testing Library `userEvent`). The same behavior through the mouse and through the keyboard is
+   one behavior, one test. The keyboard path gets its own test only in a critical flow.
+4. **Accessibility is checked by tooling, not listed per screen.** An accessibility lint rule set
+   (e.g. `eslint-plugin-jsx-a11y`) runs in check; component tests run an automated accessibility
+   scan (e.g. axe) through a shared render helper, so every component test checks it for free.
+   A spec lists only what tooling cannot check (a custom shortcut, a screen-reader announcement).
+5. **UI automation only for critical flows.** Web: e2e (e.g. Playwright) for the criteria marked
+   `(critical flow)`. Desktop: one smoke test — the app starts and shows its main window — plus
+   critical flows only; desktop UI automation is slow and flaky by nature.
+6. **Visual checks are human, once.** Layout and design match are checked by the human at VERIFY
+   (or from a screenshot an e2e run attaches in CI) — not by the agent in every round.
+
 ## Frameworks & layout
 <!-- Test framework(s), where tests live, naming pattern. -->
 
@@ -40,7 +63,7 @@ Before refactoring untested code (`workflows/refactor.md`) and for brownfield ch
 included. They are written from observation, not from what the code "should" do.
 
 ## Evidence for UI criteria
-Behavior on screen — a state is shown, a button is disabled, an error appears, a flow reaches its
+See UI tests above. Behavior on screen — a state is shown, a button is disabled, an error appears, a flow reaches its
 end — is proven by an automated test (component test, or e2e for a critical flow), never by a
 screenshot alone: a picture cannot be re-run, and its reader may not know what to look for.
 A screenshot is evidence only for what a test cannot assert — layout, visual match with the

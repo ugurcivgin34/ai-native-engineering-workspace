@@ -16,7 +16,7 @@
 1. **No spec, no code.** Every piece of work starts as a spec in `specs/active/` (from `specs/TEMPLATE.md`).
 2. **Plan before build.** A human approves the plan before any code is written.
 3. **The producer never verifies its own work.** Review and QA run in a separate session or a read-only subagent, working from files (diff + spec), never from the builder's chat.
-4. **Evidence over claims.** "Done" requires `scripts/check` green and every acceptance criterion mapped to proof. Never claim completion without showing evidence.
+4. **Evidence over claims.** "Done" requires `scripts/check` green and every acceptance criterion mapped to proof. Never claim completion without showing evidence. Proof re-runs: never verify by operating a UI yourself (browser, desktop, screenshots) unless the human asks for a one-off look.
 5. **Tests are protected.** Weakening asserts, deleting or skipping tests to get to green is forbidden — always.
 6. **Proposal rule.** Every question, option, or finding comes with your own recommendation and rationale. The human decides; nothing is applied without approval.
 7. **Shipped specs are immutable.** Files under `specs/done/` are never edited.

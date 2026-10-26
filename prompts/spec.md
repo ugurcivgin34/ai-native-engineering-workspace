@@ -8,7 +8,8 @@ decision we made. (Mini: Changed behavior + Preserved behavior criteria, Source 
 Requirements must describe BEHAVIOR — no technical solutions (no endpoints, tables, caches).
 Acceptance criteria: each line independently testable; cover the happy path, boundaries,
 empty states, invalid inputs, and authorization. Constraints include explicit OUT OF SCOPE items.
-User experience: fill flow, states, design link and accessibility, or "none — no user interface".
+User experience: fill flow, states, design link and accessibility (only what tooling cannot
+check — docs/testing.md, UI tests), or "none — no user interface".
 Every listed state gets a criterion. Never invent visuals. Ask for a link to a fixed version of
 the design (or a dated export), so verification compares against what was approved; a design
 that changes later is a spec change (R-08).

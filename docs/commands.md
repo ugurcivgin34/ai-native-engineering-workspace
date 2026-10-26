@@ -30,7 +30,7 @@ Always available, outside the loop:
 | Group | Commands |
 |---|---|
 | Terminal scripts | `scripts/init` · `scripts/doctor` · `scripts/check` · `scripts/residue` · `scripts/selftest` · `scripts/backlog` |
-| Request lanes | `/change` (existing behavior) · `/fix-bug` (broken behavior) · `/refactor` (structure only) |
+| Request lanes | `/change` (existing behavior) · `/fix-bug` (broken behavior) · `/refactor` (structure only) · `/spike` (a question only trying can answer) |
 | Setup · record · recover | `/bootstrap` · `/backlog` · `/adr` · `/recover` |
 
 ## How to read this page
@@ -56,7 +56,8 @@ Mode is the `Mode:` line in `AGENTS.md`, set at bootstrap (`workflows/README.md`
 - **Reads / writes:** reads `adapters/<tool>/`; writes `CLAUDE.md` + `.claude/`, or `.github/`
   (`copilot-instructions.md`, `prompts/`, `agents/`, `instructions/`), or `.cursor/` (`rules/`,
   `commands/`), or `.agents/skills/` (Codex). Existing files are kept unless `--force`; `generic`
-  writes nothing.
+  writes nothing. `--code <dir>` (sidecar mode, `docs/git.md`) writes `.anew-code` and adds
+  `/<dir>/` to `.gitignore`.
 - **Stops at:** no gate; it prints the next step (`Next: open Claude Code here and run /bootstrap`).
 - **Lite / Strict:** no difference — it runs before a mode exists.
 - **Refusal:** an unknown adapter prints `Unknown adapter: <name>` and the usage (exit 1).
@@ -67,7 +68,7 @@ Mode is the `Mode:` line in `AGENTS.md`, set at bootstrap (`workflows/README.md`
   (`AGENTS.md`, mode, language, `scripts/check.conf`), the ANEW base version (`.anew-version`),
   adapter presence and parity, this page's coverage, spec/plan gate consistency, twin and shipped specs, `specs/done/` immutability,
   evidence hygiene, fast-only evidence, backlog consistency (`scripts/backlog --lint`), spec size
-  (> 10 criteria without a recorded "kept as one"), fix round 4+ without a recorded R-06 decision, and reviewer agents that could edit files. `--strict` turns gate warnings into failures; CI runs it that way.
+  (> 10 criteria without a recorded "kept as one"), a pull request from a `spike/` branch, fix round 4+ without a recorded R-06 decision, and reviewer agents that could edit files. `--strict` turns gate warnings into failures; CI runs it that way.
 - **When to use it:** after bootstrap, before a PR, whenever the workspace feels off.
 - **Reads / writes:** reads the working tree (and git, for `specs/done/` against a base ref);
   writes nothing.
@@ -218,7 +219,7 @@ gate, handoff ending in `Next: <segment> — <who runs it>`, stop.
 - **Refusal:** none — a soft check: with no review/triage record, it says so and asks.
 - **Common mistake:** a claim without evidence in the table — that is a gap, and gaps are findings.
 
-## D — Request lanes: `/change`, `/fix-bug`, `/refactor`
+## D — Request lanes: `/change`, `/fix-bug`, `/refactor`, `/spike`
 
 ### `/change`
 - **What it does:** changes a behavior that already exists. Triage first, three questions in
@@ -258,6 +259,19 @@ gate, handoff ending in `Next: <segment> — <who runs it>`, stop.
 - **Lite / Strict:** no difference.
 - **Refusal:** none — but `./scripts/check` must be green before it starts.
 - **Common mistake:** editing a test — a needed test edit means behavior changed; stop.
+
+### `/spike`
+- **What it does:** answers one question by trying — on a `spike/<slug>` branch with a timebox,
+  no spec, plan or tests — and ends with a note in `docs/spikes/` and a recommendation
+  (`workflows/spike.md`, `prompts/spike.md`).
+- **When to use it:** clarifying hits a question only an experiment can answer; a UI must be
+  seen before it can be specified; an unknown library or platform.
+- **Reads / writes:** writes code only on the spike branch; writes `docs/spikes/NNNN-<slug>.md`.
+- **Stops at:** confirmation of question, stop condition and timebox; then the timebox or the
+  answer; then your decision on what the answer becomes (ADR, backlog row, spec, nothing).
+- **Lite / Strict:** no difference.
+- **Refusal:** none. CI fails a pull request from a `spike/` branch (`scripts/doctor --strict`).
+- **Common mistake:** merging the spike "because it works" — the code is rewritten in BUILD.
 
 ## E — Record and recover: `/backlog`, `/adr`, `/recover`
 
@@ -320,6 +334,7 @@ lives in [`prompts/recovery/README.md`](../prompts/recovery/README.md).
 | `/change` | Triage, then the lane | Verdict; lane gates | Chains the lane | ANALYZE (mini) only |
 | `/fix-bug` | Red reproduction first | Repro · triage | Same | Same |
 | `/refactor` | Behavior unchanged, proven | Approval · triage | Same | Same |
+| `/spike` | Answer one question by trying, throwaway | Question · timebox · decision | Same | Same |
 | `/backlog` | Status, add, change or inventory requirements | Row approval | Same | Same |
 | `/adr` | Record a decision | Your decision | Same | Same |
 | `/recover` | Run the matching ramp | Ramp confirmation | Same | Same |

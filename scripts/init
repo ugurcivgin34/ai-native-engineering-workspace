@@ -1,6 +1,8 @@
 #!/bin/sh
 # ANEW init — installs an AI tool adapter into the repo root.
-# Usage: ./scripts/init [--force] <claude-code|github-copilot|cursor|codex|generic>
+# Usage: ./scripts/init [--force] [--code <dir>] <claude-code|github-copilot|cursor|codex|generic>
+# --code <dir>: sidecar mode — the application code is its own repository in <dir> (docs/git.md,
+# Sidecar mode); <dir> is recorded in .anew-code and kept out of this repository via .gitignore.
 # Existing files are kept unless --force is given, so customized commands are never lost silently.
 set -e
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
@@ -9,7 +11,7 @@ force=0
 kept=0
 
 usage() {
-  echo "Usage: ./scripts/init [--force] <adapter>"
+  echo "Usage: ./scripts/init [--force] [--code <dir>] <adapter>"
   echo ""
   echo "Available adapters:"
   echo "  claude-code      CLAUDE.md + .claude/ (commands, reviewer subagent, permissions, hooks)"
@@ -19,6 +21,8 @@ usage() {
   echo "  generic          nothing to install — prints wiring instructions"
   echo ""
   echo "  --force          overwrite files that already exist (default: keep them)"
+  echo "  --code <dir>     sidecar mode: the code is its own git repository in <dir> (e.g. a team"
+  echo "                   repository you may not add ANEW files to); specs and docs stay here"
 }
 
 # put <src> <dst>: copy one file unless the destination exists (or --force).
@@ -38,8 +42,28 @@ put_dir() {
   done
 }
 
-[ "${1:-}" = "--force" ] && { force=1; shift; }
+code=""
+while [ $# -gt 1 ]; do
+  case "$1" in
+    --force) force=1; shift ;;
+    --code) [ $# -ge 3 ] || { usage; exit 1; }; code=${2%/}; shift 2 ;;
+    *) break ;;
+  esac
+done
 [ $# -eq 1 ] || { usage; exit 1; }
+case "$code" in
+  "") ;;
+  /*|..|../*|*/..|*/../*) echo "--code takes a directory inside this workspace, e.g. app" >&2; exit 1 ;;
+  *)
+    printf '%s\n' "$code" > "$ROOT/.anew-code"
+    grep -qxF "/$code/" "$ROOT/.gitignore" 2>/dev/null || printf '\n# Sidecar mode: the code is its own repository (docs/git.md)\n/%s/\n' "$code" >> "$ROOT/.gitignore"
+    if git -C "$ROOT/$code" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      echo "Sidecar: code repository in $code/ (recorded in .anew-code, ignored by this repository)."
+    else
+      echo "Sidecar: recorded $code/ in .anew-code — clone the code repository there before /bootstrap."
+    fi
+    ;;
+esac
 
 case "$1" in
   claude-code)

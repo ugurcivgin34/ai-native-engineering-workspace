@@ -67,7 +67,9 @@ Every file in ANEW connects to one of these channels — plus one more thing pro
 ```
 
 Works for **new projects** (empty repo) and **existing codebases** (bootstrap detects your stack
-and adapts the rules to what's already there).
+and adapts the rules to what's already there). For a codebase you may not add ANEW files to — a
+team or company repository — use **sidecar mode**: `./scripts/init --code app <tool>` keeps the
+code as its own repository in `app/` and the process here (`docs/git.md`, Sidecar mode).
 
 ## The loop
 
@@ -97,7 +99,7 @@ Each stage is a *segment* with an entry condition and a handoff written to files
 | `/review <NNNN>` | Independent review — read-only where the tool supports it (see "How strongly is each rule held?") | Findings report → human triage |
 | `/verify <NNNN>` | QA: criterion ↔ evidence table | Table → human ship |
 | `/change "<request> <work item>"` | Change an existing behavior: triage rubric (bug → `/fix-bug` · trivial → one commit per `docs/git.md` policy · change → mini-spec lane), then the lane by mode (`workflows/change-request.md`) | Triage verdict; then the lane's gates |
-| `/bootstrap` · `/fix-bug` · `/refactor` · `/backlog` · `/adr` · `/recover` | Other workflows — same commands in Claude Code, Cursor, Copilot and Codex; any other tool pastes the prompts | Their gates |
+| `/bootstrap` · `/fix-bug` · `/refactor` · `/spike` · `/backlog` · `/adr` · `/recover` | Other workflows — same commands in Claude Code, Cursor, Copilot and Codex; any other tool pastes the prompts | Their gates |
 
 Claude Code and Cursor expose these as slash commands, GitHub Copilot as prompt files, Codex as
 project-level skills (`$analyze`, explicit only; it reads `AGENTS.md` natively), and any

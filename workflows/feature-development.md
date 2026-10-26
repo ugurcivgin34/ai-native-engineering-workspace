@@ -23,5 +23,5 @@ through files (spec `Status`, plan `Approved by / on`), never chat.
 | 6 | **INDEPENDENT REVIEW** — fresh session / read-only subagent | Reviewer | `prompts/review.md` | Findings with evidence (file:line) across all six dimensions, or "clean". | REVIEW · STOP with report → "Next: TRIAGE" |
 | 7 | **TRIAGE** | Human | — | **[GATE: human]** Each finding: real (fix) / noise (reject, write why) / investigate (→ QA, R-05). | human · triage recorded in the review/PR thread |
 | 8 | **FIX ROUNDS** | Developer | `prompts/build.md` §fixes | Only real findings. Re-review the fix diff (step 6, narrow scope). Rounds > 3 → R-06 (commits carry `[plan NNNN/fix-k]`; the review report shows the count). | Developer applies triage; REVIEW again on the fix diff |
-| 9 | **VERIFY** | QA | `prompts/verify.md` | Criterion ↔ evidence table complete. UI criteria: screenshot = evidence. | VERIFY · STOP with evidence table → "Next: SHIP" |
+| 9 | **VERIFY** | QA | `prompts/verify.md` | Criterion ↔ evidence table complete. UI behavior: a test; a screenshot only for layout/design match (`docs/testing.md`, UI tests). | VERIFY · STOP with evidence table → "Next: SHIP" |
 | 10 | **SHIP** | Human | — | **[GATE: human]** DoD checklist in spec all green → PR (template) → merge → move spec to `specs/done/` → fill scorecard. | human · spec moved to `specs/done/`, `Status: Shipped` |

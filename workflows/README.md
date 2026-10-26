@@ -11,6 +11,7 @@ uses (`prompts/…`) — workflows never copy prompt text, so there is exactly o
 | `bug-fix.md` | Something works incorrectly. Reproduction comes before the fix. |
 | `change-request.md` | A behavior that exists must change. The most common enterprise work item. Triage rubric: deviation from the agreed behavior → bug; a criterion changes or appears (or shared code is touched) → mini-spec lane; otherwise trivial. |
 | `refactor.md` | Structure changes, behavior doesn't. |
+| `spike.md` | A question only trying can answer. Timeboxed, throwaway branch never merged; a note survives, the code doesn't. |
 | `incident.md` | Production is on fire. Stabilize first, learn after. |
 
 ## Legend
