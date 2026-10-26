@@ -16,7 +16,9 @@ specs/plans/<NNNN>-plan.md:
 For each dimension give concrete findings WITH EVIDENCE (file:line, commands to reproduce — never
 saved artifacts), or explicitly say "clean":
 - Correctness: are the acceptance criteria actually met? UI: every state listed in the spec's
-  User experience is implemented; accessibility expectations met.
+  User experience is implemented; accessibility expectations met. Logic in a view (component
+  body, code-behind) that belongs in a hook, service or view model → finding (docs/testing.md,
+  UI tests, rule 2).
 - Plan conformance: do the changed files match the plan's file list? Each file outside it is a
   finding (plan drift, R-07).
 - Security: authz, input validation, data leaks, secrets (docs/security.md).

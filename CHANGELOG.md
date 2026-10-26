@@ -41,6 +41,23 @@ items below (scripts: apply upstream's behavior list onto these extensions, neve
 - **Layers & stack reviewers** (docs/conventions.md): one rules doc per layer; `/review` runs a
   layer's read-only stack reviewer as a second pass. UI behavior is proven by a test; a screenshot
   only for layout and design match (docs/testing.md, docs/roles/qa.md).
+- **UI tests** (docs/testing.md): the agent never verifies a UI by operating it (browser,
+  desktop, screenshots); logic lives outside the view (hooks/services, MVVM); one test per
+  behavior, not per input device; accessibility by lint + an automated scan, not per-screen
+  criteria; desktop UI automation = one smoke test + critical flows. AGENTS.md rule 4, QA card,
+  verify prompt and spec template follow.
+- **Spike lane** (`workflows/spike.md`, `prompts/spike.md`, `/spike`, `docs/spikes/`): one
+  question, a timebox, a throwaway `spike/<slug>` branch; a note survives, the code does not.
+  CI skips pushes to `spike/**` and doctor fails a pull request from one.
+- **Sidecar mode** (`scripts/init --code <dir>`, `.anew-code`, docs/git.md): for repositories
+  ANEW files may not enter — the code is its own repository in `<dir>`, ignored here; doctor
+  accepts it, ignores evidence hygiene inside it and counts fix rounds in it.
+- **Claude Code hooks hardened** (tested in `scripts/selftest`): shared `lib.sh` (jq / python3 /
+  fallback parsing, `..` resolved); `protect-config.sh` keeps lint, analyzer, type-check settings
+  and `scripts/check.conf` unchanged after bootstrap unless an approved plan lists the file
+  (AGENTS.md rule 5 extended); `guard-bash.sh` closes the shell route — writes under
+  `specs/done/` (ship move allowed), recursive forced deletes in any flag order, force pushes in
+  any form, `reset --hard`, `clean -f`, also behind `git -C`. More permission denies.
 
 ## v1.16 — A feature fits in a day
 

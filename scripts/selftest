@@ -111,8 +111,9 @@ commit() { git -C "$W" add -A; git -C "$W" -c user.name=selftest -c user.email=s
 put()    { mkdir -p "$(dirname "$W/$1")"; f=$1; shift; printf '%s\n' "$@" > "$W/$f"; }
 # CI's base-ref and event variables would point doctor at refs and a payload the fixture doesn't
 # have; doctor_pr <payload> sets the event payload on purpose.
-doctor() { run sh -c 'unset ANEW_BASE_REF GITHUB_BASE_REF GITHUB_EVENT_PATH; exec sh "$0" "$@"' "$W/scripts/doctor" "$@"; }
-doctor_pr() { run sh -c 'unset ANEW_BASE_REF GITHUB_BASE_REF; GITHUB_EVENT_PATH=$1; export GITHUB_EVENT_PATH; shift; exec sh "$0" "$@"' "$W/scripts/doctor" "$@"; }
+doctor() { run sh -c 'unset ANEW_BASE_REF GITHUB_BASE_REF GITHUB_EVENT_PATH GITHUB_HEAD_REF; exec sh "$0" "$@"' "$W/scripts/doctor" "$@"; }
+doctor_pr() { run sh -c 'unset ANEW_BASE_REF GITHUB_BASE_REF GITHUB_HEAD_REF; GITHUB_EVENT_PATH=$1; export GITHUB_EVENT_PATH; shift; exec sh "$0" "$@"' "$W/scripts/doctor" "$@"; }
+doctor_head() { run sh -c 'unset ANEW_BASE_REF GITHUB_BASE_REF GITHUB_EVENT_PATH; GITHUB_HEAD_REF=$1; export GITHUB_HEAD_REF; shift; exec sh "$0" "$@"' "$W/scripts/doctor" "$@"; }
 
 echo "== scripts/doctor =="
 doctor
@@ -250,6 +251,29 @@ doctor --strict;   exits 1 "fourth fix round without R-06 under --strict"; has "
 put specs/plans/0012-plan.md '# Plan 0012' '- Approved by / on: Ada, 2026-10-26' '- R-06 decision: re-plan, Ada, 2026-10-27'
 doctor --strict;   hasnt "without a recorded R-06 decision" "a recorded R-06 decision clears it"
 
+echo "== doctor: spikes are never merged =="
+reset; doctor_head spike/try-grid --strict
+exits 1 "pull request from a spike branch"; has "FAIL  pull request from spike branch 'spike/try-grid'" "a spike PR is a failure"
+doctor_head feat/grid --strict;  hasnt "spike branch" "a feature branch PR is fine"
+
+echo "== sidecar mode (scripts/init --code, doctor) =="
+reset; run sh "$W/scripts/init" --code app/ generic
+exits 0 "init --code"; has "Sidecar: recorded app/ in .anew-code" "init records a missing code dir"
+grep -qxF 'app' "$W/.anew-code"; report $? "init writes .anew-code without the trailing slash"
+grep -qxF '/app/' "$W/.gitignore"; report $? "init ignores the code dir in this repository"
+run sh "$W/scripts/init" --code ../elsewhere generic; exits 1 "init --code refuses a path outside the workspace"
+doctor;            has "WARN  sidecar: app/ is not a git repository yet" "doctor reports a missing code repository"
+git init -q "$W/app"; mkdir -p "$W/app/evidence"
+doctor;            has "ok    sidecar: code repository in app/" "doctor accepts the code repository"
+hasnt "repository clone inside the working tree: app" "the sidecar code repository is not a stray clone"
+hasnt "evidence directory found: app/evidence" "nothing inside the code repository is reported"
+put specs/active/0013-wip.md '# Spec 0013' '- Status: In progress'
+put specs/plans/0013-plan.md '# Plan 0013' '- Approved by / on: Ada, 2026-10-26' '- R-06 decision: —'
+printf 'x\n' > "$W/app/f"; git -C "$W/app" add -A
+git -C "$W/app" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix(x): y [plan 0013/fix-4]"
+doctor --strict;   has "FAIL  fix round 4 on plan 0013 without a recorded R-06 decision" "fix rounds are counted in the code repository too"
+rm -rf "$W/app"
+
 echo "== doctor: reviewers stay read-only =="
 reset; doctor;     has "ok    reviewers are read-only (no edit tools)" "the shipped reviewers are read-only"
 put adapters/claude-code/.claude/agents/react-reviewer.md '---' 'name: react-reviewer' 'tools: Read, Grep, Glob, Bash' '---' 'body'
@@ -258,6 +282,39 @@ put adapters/claude-code/.claude/agents/react-reviewer.md '---' 'name: react-rev
 doctor;            exits 1 "an editing reviewer fails"; has "FAIL  reviewer can edit files: adapters/claude-code/.claude/agents/react-reviewer.md" "a reviewer with Edit is caught"
 put adapters/claude-code/.claude/agents/react-reviewer.md '---' 'name: react-reviewer' 'model: sonnet' '---' 'tools: Read'
 doctor;            has "FAIL  reviewer has no tools line (inherits edit tools)" "a reviewer with no tools line (outside frontmatter too) is caught"
+
+# --- Claude Code hooks: they make "Enforced" true, so they are tested like the scripts ---
+H="$W/adapters/claude-code/.claude/hooks"
+if [ -d "$H" ]; then
+  echo "== claude-code hooks =="
+  reset
+  hook() { name=$1; tool=$2; key=$3; val=$4
+    out=$(printf '{"tool_name":"%s","tool_input":{"%s":"%s"}}' "$tool" "$key" "$val" | CLAUDE_PROJECT_DIR="$W" sh "$H/$name" 2>&1); rc=$?; }
+  blocks() { hook "$@"; [ "$rc" -eq 2 ]; report $? "blocks: $2 $4"; }
+  allows() { hook "$@"; [ "$rc" -eq 0 ]; report $? "allows: $2 $4"; }
+  blocks protect-shipped.sh Edit file_path "$W/specs/done/0001-a.md"
+  blocks protect-shipped.sh Write file_path "$W/specs/active/../done/0001-a.md"
+  allows protect-shipped.sh Edit file_path "$W/specs/active/0001-a.md"
+  put AGENTS.md '# AGENTS.md (configured)'
+  blocks protect-config.sh Edit file_path "$W/web/.eslintrc.json"
+  blocks protect-config.sh Write file_path "$W/scripts/check.conf"
+  blocks protect-config.sh Edit file_path "$W/src/Directory.Build.props"
+  allows protect-config.sh Edit file_path "$W/src/App.tsx"
+  put specs/active/0014-lint.md '# Spec 0014' '- Status: In progress'
+  put specs/plans/0014-plan.md '# Plan 0014' '- Approved by / on: Ada, 2026-10-26' '## Files to change or add' '- web/.eslintrc.json'
+  allows protect-config.sh Edit file_path "$W/web/.eslintrc.json"
+  for c in 'rm -rf build' 'rm -fr build' 'rm -r -f build' 'rm --recursive --force build' 'cd a && sudo rm -Rf b' \
+           'git push --force origin main' 'git push origin +main' 'git push --force-with-lease' 'git -C app reset --hard' \
+           'git clean -fdx' 'echo x > specs/done/0001-a.md' "sed -i s/a/b/ specs/done/0001-a.md" 'git mv specs/done/a.md specs/active/' \
+           'sed -i s/x/y/ web/tsconfig.json'; do blocks guard-bash.sh Bash command "$c"; done
+  for c in 'rm build/a.txt' 'rm --force a.txt' 'git push -u origin feature/x' 'cat specs/done/0001-a.md 2>&1' \
+           'grep -i foo specs/done/0001-a.md' 'git mv specs/active/0001-a.md specs/done/' 'git reset --soft HEAD~1' \
+           'dotnet test 2>&1 | tee test.log' 'sed -i s/a/b/ web/.eslintrc.json'; do allows guard-bash.sh Bash command "$c"; done
+  put AGENTS.md '> **STATUS: NOT CONFIGURED.**'
+  allows protect-config.sh Write file_path "$W/scripts/check.conf"
+else
+  echo "skip  claude-code hooks (no adapters/ in this repo)"
+fi
 
 reset; rm -f "$W/docs/testing.md"
 doctor;            exits 1 "core file missing"; has "FAIL  missing: docs/testing.md" "missing core file is a failure"

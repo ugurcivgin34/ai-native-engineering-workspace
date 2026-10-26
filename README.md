@@ -67,7 +67,9 @@ Every file in ANEW connects to one of these channels — plus one more thing pro
 ```
 
 Works for **new projects** (empty repo) and **existing codebases** (bootstrap detects your stack
-and adapts the rules to what's already there).
+and adapts the rules to what's already there). For a codebase you may not add ANEW files to — a
+team or company repository — use **sidecar mode**: `./scripts/init --code app <tool>` keeps the
+code as its own repository in `app/` and the process here (`docs/git.md`, Sidecar mode).
 
 ## The loop
 
@@ -97,7 +99,7 @@ Each stage is a *segment* with an entry condition and a handoff written to files
 | `/review <NNNN>` | Independent review — read-only where the tool supports it (see "How strongly is each rule held?") | Findings report → human triage |
 | `/verify <NNNN>` | QA: criterion ↔ evidence table | Table → human ship |
 | `/change "<request> <work item>"` | Change an existing behavior: triage rubric (bug → `/fix-bug` · trivial → one commit per `docs/git.md` policy · change → mini-spec lane), then the lane by mode (`workflows/change-request.md`) | Triage verdict; then the lane's gates |
-| `/bootstrap` · `/fix-bug` · `/refactor` · `/backlog` · `/adr` · `/recover` | Other workflows — same commands in Claude Code, Cursor, Copilot and Codex; any other tool pastes the prompts | Their gates |
+| `/bootstrap` · `/fix-bug` · `/refactor` · `/spike` · `/backlog` · `/adr` · `/recover` | Other workflows — same commands in Claude Code, Cursor, Copilot and Codex; any other tool pastes the prompts | Their gates |
 
 Claude Code and Cursor expose these as slash commands, GitHub Copilot as prompt files, Codex as
 project-level skills (`$analyze`, explicit only; it reads `AGENTS.md` natively), and any
@@ -132,11 +134,14 @@ Not every rule is held the same way, and not every tool can hold it the same way
 | Plan approval recorded before build | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) |
 | Who approved the plan | Documented | Documented | Documented | Documented | Documented |
 | Producer ≠ verifier | Enforced (reviewer subagent has no Edit/Write; Bash kept for `scripts/check`, instructed never to write) + Validated (doctor fails a `*reviewer` agent with edit tools or no tools line) | Enforced (reviewer agent, no edit tools; `runCommands` kept) + Validated (same doctor check) | Documented (fresh chat) | Documented (fresh session) | Documented (fresh session) |
-| Shipped specs immutable | Enforced (hook, editor tools) + Validated (CI) | Documented (instruction) + Validated (CI) | Documented (rule) + Validated (CI) | Validated (CI) | Validated (CI) |
-| No force-push / hard reset | Enforced (permission deny) | Documented | Documented | Documented | Documented |
+| Shipped specs immutable | Enforced (hooks: editor tools and shell; tested by selftest) + Validated (CI) | Documented (instruction) + Validated (CI) | Documented (rule) + Validated (CI) | Validated (CI) | Validated (CI) |
+| No force-push / hard reset | Enforced (permission deny + shell hook, any flag form) | Documented | Documented | Documented | Documented |
 | "Done" = `scripts/check` green | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) |
 | Evidence is referenced, not stored (no `evidence/`, no repo clone inside the repo) | Validated (doctor warns, every mode) | Validated (doctor warns, every mode) | Validated (doctor warns, every mode) | Validated (doctor warns, every mode) | Validated (doctor warns, every mode) |
 | `scripts/check` leaves nothing running, and no data for the next run | Documented (the residue test, `scripts/residue`, runs at bootstrap — not in CI; it does not measure data) | Documented (same) | Documented (same) | Documented (same) | Documented (same) |
+| Lint / analyzer / check settings not loosened without an approved plan | Enforced (hooks: editor tools and shell) | Documented | Documented | Documented | Documented |
+| Spikes are never merged | Validated (CI fails a PR from `spike/*`) | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) |
+| The agent never verifies a UI by operating it | Documented | Documented | Documented | Documented | Documented |
 | Every spec names an existing requirement; no duplicate requirement ids | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) | Validated (CI) |
 | Progress lives in the spec, never in the backlog | Validated (doctor warns on a hand-written State) | Validated (same) | Validated (same) | Validated (same) | Validated (same) |
 | Spec over 10 criteria is split or records "kept as one" | Validated (doctor warns) | Validated (same) | Validated (same) | Validated (same) | Validated (same) |

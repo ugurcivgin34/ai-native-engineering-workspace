@@ -24,9 +24,10 @@ for f in \
   specs/TEMPLATE.md specs/TEMPLATE-mini.md specs/plans/TEMPLATE.md specs/BACKLOG.md \
   specs/active/README.md specs/plans/README.md specs/done/README.md \
   workflows/README.md workflows/bootstrap.md workflows/feature-development.md workflows/bug-fix.md \
-  workflows/refactor.md workflows/incident.md workflows/segments.md workflows/change-request.md \
+  workflows/refactor.md workflows/incident.md workflows/segments.md workflows/change-request.md workflows/spike.md \
   prompts/README.md prompts/bootstrap.md prompts/clarify.md prompts/spec.md prompts/plan.md \
-  prompts/build.md prompts/review.md prompts/verify.md prompts/adr.md prompts/backlog.md prompts/recovery/README.md \
+  prompts/build.md prompts/review.md prompts/verify.md prompts/adr.md prompts/backlog.md prompts/spike.md prompts/recovery/README.md \
+  docs/spikes/README.md docs/spikes/TEMPLATE.md \
   docs/commands.md \
   scripts/check scripts/backlog
 do
@@ -81,6 +82,20 @@ if [ -f "$ROOT/.anew-version" ]; then
   ok "ANEW base version: $(head -n 1 "$ROOT/.anew-version" | tr -d '\r')"
 else
   warn ".anew-version missing — write the ANEW version this workspace is based on (e.g. v1.13) so upgrades know their base"
+fi
+
+# --- sidecar mode (docs/git.md): the code is its own repository in the directory .anew-code names ---
+code_dir=""
+if [ -f "$ROOT/.anew-code" ]; then
+  code_dir=$(head -n 1 "$ROOT/.anew-code" | tr -d '\r' | sed 's:/*$::')
+  if [ -z "$code_dir" ]; then
+    warn ".anew-code is empty — write the code directory (e.g. app) or delete the file"
+  elif git -C "$ROOT/$code_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    ok "sidecar: code repository in $code_dir/"
+    git -C "$ROOT" check-ignore -q "$code_dir/" 2>/dev/null || warn "sidecar: $code_dir/ is not ignored by this repository — add '/$code_dir/' to .gitignore (scripts/init --code does)"
+  else
+    warn "sidecar: $code_dir/ is not a git repository yet — clone the code there (docs/git.md, Sidecar mode)"
+  fi
 fi
 
 # --- adapter presence ---
@@ -218,6 +233,11 @@ if [ -d "$ROOT/adapters/claude-code/.claude/commands" ]; then
   [ "$ref_fails" -eq 0 ] && ok "command reference covers every command (docs/commands.md)"
 fi
 
+# --- spikes are never merged (workflows/spike.md): a pull request from spike/* fails in CI ---
+case "${GITHUB_HEAD_REF:-}" in
+  spike/*) fail "pull request from spike branch '$GITHUB_HEAD_REF' — spikes are never merged; write the note (docs/spikes/) and build it through the loop (workflows/spike.md)" ;;
+esac
+
 # --- reviewers stay read-only (AGENTS.md rule 3): a Claude Code subagent whose name ends in
 # "reviewer" must list its tools, and none of them may edit; a Copilot reviewer agent likewise.
 # A missing tools line inherits every tool, including Edit and Write. Missing = FAIL: the README
@@ -268,6 +288,8 @@ done
 # Counts [plan NNNN/fix-k] in commit subjects reachable from HEAD; only specs still in active/.
 if git -C "$ROOT" rev-parse --verify --quiet HEAD >/dev/null 2>&1; then
   subjects=$(git -C "$ROOT" log --format=%s HEAD 2>/dev/null)
+  # sidecar: fix commits live in the code repository
+  [ -n "$code_dir" ] && subjects=$(printf '%s\n%s' "$subjects" "$(git -C "$ROOT/$code_dir" log --format=%s HEAD 2>/dev/null)")
   for p in "$ROOT/specs/plans/"[0-9]*-plan.md; do
     [ -f "$p" ] || continue
     n=$(basename "$p" | sed 's/-plan\.md$//')
@@ -308,6 +330,7 @@ clones=$(printf '%s\n' "$hyg" | sed -n 's|/\.git$||p')
 oldifs=$IFS; IFS='
 '
 for c in $clones; do
+  [ -n "$code_dir" ] && [ "$c" = "$ROOT/$code_dir" ] && continue   # sidecar: the code repository, by design
   warn "repository clone inside the working tree: ${c#"$ROOT"/} — clean-clone verification belongs in a temp dir outside the repo (docs/testing.md Evidence policy)"
 done
 for d in $hyg; do

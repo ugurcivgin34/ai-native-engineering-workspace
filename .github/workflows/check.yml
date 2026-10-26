@@ -1,6 +1,7 @@
 name: check
 on:
   push:
+    branches-ignore: ['spike/**']   # spikes are throwaway: red is allowed (workflows/spike.md)
   pull_request:
 
 jobs:

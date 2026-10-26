@@ -25,7 +25,9 @@ what is deliberately NOT being done. Decisions from clarifying questions are fol
      - States: every state of each screen — empty, loading, error, success, no permission.
      - Design reference: a link to the design (file / frame / version), never a copy in the repo
        (docs/testing.md, Evidence policy). No design → "none — the flow above is the design".
-     - Accessibility: keyboard path, labels, contrast expectations.
+     - Accessibility: only what tooling cannot check (a custom shortcut, a screen-reader
+       announcement); labels, roles and contrast are checked by lint and an automated scan
+       (docs/testing.md, UI tests). Nothing special → "standard — checked by tooling".
      Every state listed here gets an acceptance criterion below. -->
 
 ## Constraints & out of scope

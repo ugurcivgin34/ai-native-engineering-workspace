@@ -10,7 +10,10 @@ Read AGENTS.md and workflows/bootstrap.md. We are adapting this workspace to a r
    international or a vendor/compliance rule requires English. Continue the interview in (a).
    These become permanent: AGENTS.md "Language" line + docs/conventions.md "Language".
    Field labels and Status values in templates stay English — they are protocol, not prose.
-1. INSPECT the working tree. If it contains application code, detect stack, build/test tooling and
+1. INSPECT the working tree. If .anew-code exists (sidecar mode, docs/git.md), the application
+   code is the repository in that directory: inspect it there, write check.conf commands that run
+   inside it, ask how that repository names branches and commits, and fill docs/git.md Sidecar
+   mode (or delete that section if there is no .anew-code). If it contains application code, detect stack, build/test tooling and
    existing conventions from the code, and present what you found for confirmation. If empty,
    we start from my answers. Existing code also gets a capability INVENTORY (prompts/backlog.md,
    INVENTORY): what the product already does, as Existing rows with file-path evidence.
